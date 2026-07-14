@@ -33,7 +33,10 @@
     padding:0 14px; padding-top:env(safe-area-inset-top);
   }
   header h1 { font-size:16px; margin:0; font-weight:700; letter-spacing:-.01em; }
+  header h1::after { content:' ▾'; color:var(--sub); font-size:12px; font-weight:600; }
   header .sub { font-size:11px; color:var(--sub); margin-top:2px; }
+  #hd-day { cursor:pointer; padding:6px 8px; margin-left:-8px; border-radius:12px; transition:background .2s; }
+  #hd-day:active { background:rgba(255,255,255,.08); }
   #hd-expense {
     border:none; background:rgba(255,255,255,.08); color:var(--txt);
     font-size:11.5px; font-weight:600; padding:7px 12px; border-radius:999px; cursor:pointer;
@@ -41,31 +44,35 @@
   }
   #hd-expense:active { background:rgba(255,255,255,.16); }
 
-  #daybar {
-    position:fixed; top:56px; left:0; right:0; height:46px; z-index:1000;
-    background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    display:flex; gap:6px; align-items:center;
-    padding:0 10px; overflow-x:auto; white-space:nowrap;
-    border-top:1px solid var(--line); -webkit-overflow-scrolling:touch;
+  /* ---- 날짜 선택 모달 ---- */
+  #day-modal {
+    position:fixed; inset:0; z-index:2100; background:rgba(0,0,0,.55);
+    display:none; align-items:center; justify-content:center;
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
   }
-  #daybar::-webkit-scrollbar { display:none; }
-  .day-chip {
-    flex:0 0 auto; padding:5px 12px; border-radius:12px; cursor:pointer;
-    background:rgba(255,255,255,.05); color:var(--sub); font-size:11.5px; font-weight:700;
-    border:1px solid transparent; line-height:1.25; text-align:center;
-    transition: background .2s, color .2s, transform .15s, box-shadow .2s;
+  #day-card {
+    width:min(92vw,400px); max-height:74vh; overflow-y:auto;
+    background:var(--panel-solid); color:#fff; border-radius:20px; padding:10px 8px;
+    border:1px solid var(--line); box-shadow:var(--shadow);
+    animation:cardIn .28s cubic-bezier(.32,.72,.25,1);
   }
-  .day-chip:active { transform:scale(.95); }
-  .day-chip .dc-date { display:block; font-size:9.5px; font-weight:500; opacity:.7; }
-  .day-chip.active {
-    background:var(--acc-grad); color:#fff;
-    box-shadow:0 3px 12px rgba(79,140,255,.4);
+  #day-card h2 { font-size:14px; margin:8px 10px 10px; color:var(--acc); }
+  .dm-row {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 12px; border-radius:12px; cursor:pointer; transition:background .15s;
   }
-  .day-chip.empty { opacity:.45; }
-  .day-chip.active.empty { opacity:1; background:#39435466; box-shadow:none; border-color:var(--line); }
+  .dm-row:active { background:rgba(255,255,255,.07); }
+  .dm-row.cur { background:rgba(79,140,255,.16); }
+  .dm-row.cur .dm-d { color:var(--acc); }
+  .dm-l { display:flex; align-items:baseline; gap:8px; flex:0 0 auto; }
+  .dm-d { font-size:13.5px; font-weight:800; }
+  .dm-date { font-size:11px; color:var(--sub); }
+  .dm-r { font-size:11px; color:var(--sub); text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dm-row.nodata .dm-r, .dm-row.nodata .dm-d { opacity:.5; }
+  .dm-tag { background:rgba(255,255,255,.08); border-radius:999px; padding:2px 8px; font-size:10px; }
 
   #legend {
-    position:fixed; top:102px; left:0; right:0; height:32px; z-index:1000;
+    position:fixed; top:56px; left:0; right:0; height:32px; z-index:1000;
     background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
     color:var(--txt); padding:0 12px; font-size:10.5px;
     display:flex; gap:8px; align-items:center; overflow-x:auto; white-space:nowrap;
@@ -78,7 +85,7 @@
   }
   .legend-line { width:16px; height:4px; border-radius:2px; display:inline-block; }
 
-  #map { position:absolute; top:134px; bottom:0; left:0; right:0; }
+  #map { position:absolute; top:88px; bottom:0; left:0; right:0; }
 
   /* ---- 팝업 ---- */
   .leaflet-popup-content-wrapper {
@@ -160,7 +167,7 @@
 
   /* ---- 일별 지출 요약 (우측상단) ---- */
   #day-summary {
-    position:fixed; top:142px; right:10px; z-index:999; display:none; cursor:pointer;
+    position:fixed; top:96px; right:10px; z-index:999; display:none; cursor:pointer;
     background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
     color:#fff; font-size:11.5px; font-weight:700;
     padding:7px 11px; border-radius:999px; box-shadow:var(--shadow); border:1px solid var(--line);
@@ -250,14 +257,17 @@
 <body>
 
 <header>
-  <div>
+  <div id="hd-day" title="날짜 선택">
     <h1 id="hd-title">NYC 여행 전체 일정</h1>
     <div class="sub" id="hd-sub">10/6(화) ~ 10/20(화) · 14박 15일</div>
   </div>
   <button id="hd-expense">지출 현황</button>
 </header>
 
-<div id="daybar"></div>
+<div id="day-modal"><div id="day-card">
+  <h2>날짜 선택</h2>
+  <div id="dm-list"></div>
+</div></div>
 <div id="legend"></div>
 <div id="map"></div>
 <div id="placeholder"></div>
@@ -479,7 +489,6 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 }).addTo(map);
 
 const dayLayer = L.layerGroup().addTo(map);
-const daybarEl = document.getElementById('daybar');
 const legendEl = document.getElementById('legend');
 const phEl = document.getElementById('placeholder');
 const scrollEl = document.getElementById('picker-scroll');
@@ -492,16 +501,19 @@ let markers = [], rows = [];
 let currentIndex = 0, settleTimer = null, programmaticScroll = false;
 let curDay = null;
 
-/* --- day 칩 생성 --- */
-const chips = [];
-DAYS.forEach((d, i) => {
-  const c = document.createElement('div');
-  c.className = 'day-chip' + (d.stops.length ? '' : ' empty');
-  c.innerHTML = `D${d.day}<span class="dc-date">${d.date} ${d.dow}</span>`;
-  c.addEventListener('click', () => selectDay(i));
-  daybarEl.appendChild(c);
-  chips.push(c);
-});
+/* --- 날짜 선택 모달 --- */
+const dayModal = document.getElementById('day-modal');
+function openDayModal(){
+  document.getElementById('dm-list').innerHTML = DAYS.map((d, k) => `
+    <div class="dm-row ${k===curDay ? 'cur' : ''} ${d.stops.length ? '' : 'nodata'}" onclick="pickDay(${k})">
+      <div class="dm-l"><span class="dm-d">D${d.day}</span><span class="dm-date">${d.date} (${d.dow})</span></div>
+      <div class="dm-r">${d.stops.length ? d.sub : '<span class="dm-tag">미정</span>'}</div>
+    </div>`).join('');
+  dayModal.style.display = 'flex';
+}
+function pickDay(k){ dayModal.style.display = 'none'; selectDay(k); }
+document.getElementById('hd-day').addEventListener('click', openDayModal);
+dayModal.addEventListener('click', (e) => { if (e.target === dayModal) dayModal.style.display = 'none'; });
 
 function buildLegend(day){
   const used = [...new Set(day.modes)];
@@ -513,11 +525,8 @@ function buildLegend(day){
 function selectDay(i){
   curDay = i;
   const day = DAYS[i];
-  chips.forEach((c,k)=> c.classList.toggle('active', k===i));
-  chips[i].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
   hdTitle.textContent = day.title;
   hdSub.textContent = `${day.date}(${day.dow}) · ${day.sub}`;
-  try { localStorage.setItem('nycLastDay', String(i)); } catch(e){}
 
   dayLayer.clearLayers();
   markers = []; rows = []; currentIndex = 0;
@@ -809,13 +818,15 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowUp' && DAYS[curDay].stops.length) { e.preventDefault(); scrollToIndex(Math.max(0, currentIndex-1)); }
 });
 
-/* 초기 선택: 마지막으로 보던 날, 없으면 데이터 있는 첫 날 */
-let initDay = 1;
-try {
-  const saved = parseInt(localStorage.getItem('nycLastDay'), 10);
-  if (!isNaN(saved) && saved >= 0 && saved < DAYS.length) initDay = saved;
-} catch(e){}
-selectDay(initDay);
+/* 초기 선택: 오늘 날짜에 해당하는 Day (여행 전 → D1, 여행 후 → D15) */
+function defaultDayIndex(){
+  const start = new Date(2026, 9, 6);   // 10/6 = Day 1
+  const today = new Date();
+  start.setHours(0,0,0,0); today.setHours(0,0,0,0);
+  const diff = Math.floor((today - start) / 86400000);
+  return Math.max(0, Math.min(DAYS.length - 1, diff));
+}
+selectDay(defaultDayIndex());
 </script>
 </body>
 </html>
