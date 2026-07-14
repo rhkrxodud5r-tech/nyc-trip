@@ -27,11 +27,20 @@
 
   /* ---- 레이아웃: header 56 + day칩 42 + legend 30 = 128 ---- */
   header {
-    position:fixed; top:0; left:0; right:0; height:56px; z-index:1000;
+    position:fixed; top:0; left:0; right:0; z-index:1000;
+    height:calc(56px + env(safe-area-inset-top, 0px));
     background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
     color:var(--txt); display:flex; align-items:center; justify-content:space-between;
-    padding:0 14px; padding-top:env(safe-area-inset-top);
+    padding:0 14px; padding-top:env(safe-area-inset-top, 0px);
   }
+  .hd-actions { display:flex; gap:8px; align-items:center; flex:0 0 auto; }
+  #hd-reload {
+    width:32px; height:32px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(255,255,255,.08); color:var(--txt);
+    display:flex; align-items:center; justify-content:center; transition:background .2s, transform .3s;
+  }
+  #hd-reload svg { width:15px; height:15px; stroke:#e6ebf2; }
+  #hd-reload:active { background:rgba(255,255,255,.16); transform:rotate(180deg); }
   header h1 { font-size:16px; margin:0; font-weight:700; letter-spacing:-.01em; }
   header h1::after { content:' ▾'; color:var(--sub); font-size:12px; font-weight:600; }
   header .sub { font-size:11px; color:var(--sub); margin-top:2px; }
@@ -72,7 +81,7 @@
   .dm-tag { background:rgba(255,255,255,.08); border-radius:999px; padding:2px 8px; font-size:10px; }
 
   #legend {
-    position:fixed; top:56px; left:0; right:0; height:32px; z-index:1000;
+    position:fixed; top:calc(56px + env(safe-area-inset-top, 0px)); left:0; right:0; height:32px; z-index:1000;
     background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
     color:var(--txt); padding:0 12px; font-size:10.5px;
     display:flex; gap:8px; align-items:center; overflow-x:auto; white-space:nowrap;
@@ -85,7 +94,7 @@
   }
   .legend-line { width:16px; height:4px; border-radius:2px; display:inline-block; }
 
-  #map { position:absolute; top:88px; bottom:0; left:0; right:0; }
+  #map { position:absolute; top:calc(88px + env(safe-area-inset-top, 0px)); bottom:0; left:0; right:0; }
 
   /* ---- 팝업 ---- */
   .leaflet-popup-content-wrapper {
@@ -167,7 +176,7 @@
 
   /* ---- 일별 지출 요약 (우측상단) ---- */
   #day-summary {
-    position:fixed; top:96px; right:10px; z-index:999; display:none; cursor:pointer;
+    position:fixed; top:calc(96px + env(safe-area-inset-top, 0px)); right:10px; z-index:999; display:none; cursor:pointer;
     background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
     color:#fff; font-size:11.5px; font-weight:700;
     padding:7px 11px; border-radius:999px; box-shadow:var(--shadow); border:1px solid var(--line);
@@ -261,7 +270,15 @@
     <h1 id="hd-title">NYC 여행 전체 일정</h1>
     <div class="sub" id="hd-sub">10/6(화) ~ 10/20(화) · 14박 15일</div>
   </div>
-  <button id="hd-expense">지출 현황</button>
+  <div class="hd-actions">
+    <button id="hd-reload" title="최신 버전으로 새로고침" aria-label="새로고침">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 11a8 8 0 1 0-1.5 6.5"/>
+        <path d="M20 4v7h-7"/>
+      </svg>
+    </button>
+    <button id="hd-expense">지출 현황</button>
+  </div>
 </header>
 
 <div id="day-modal"><div id="day-card">
@@ -774,6 +791,10 @@ function openExpenseModal(){
 }
 document.getElementById('day-summary').addEventListener('click', openExpenseModal);
 document.getElementById('hd-expense').addEventListener('click', openExpenseModal);
+/* 새로고침: 캐시 우회 쿼리를 붙여 항상 최신 배포본을 받아옴 (홈 화면 앱에서도 동작) */
+document.getElementById('hd-reload').addEventListener('click', () => {
+  location.replace(location.pathname + '?r=' + Date.now());
+});
 document.getElementById('em-close').addEventListener('click', () => document.getElementById('expense-modal').style.display = 'none');
 document.getElementById('expense-modal').addEventListener('click', (e) => {
   if (e.target.id === 'expense-modal') e.target.style.display = 'none';
