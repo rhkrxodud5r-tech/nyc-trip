@@ -492,7 +492,7 @@ function selectDay(i){
     let nm = s.name;
     if (nm.length > 11) nm = nm.slice(0,10) + '…';
     row.innerHTML = `<span class="pr-num">${idx}</span><span>${nm}</span>`;
-    row.addEventListener('click', () => scrollToIndex(idx));
+    row.addEventListener('click', () => focusStop(idx));
     scrollEl.appendChild(row);
     rows.push(row);
   });
