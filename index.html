@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NYC 여행 전체 일정 지도 (10/6~10/20)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#0f1115; overscroll-behavior:none; }
+
+  /* ---- 레이아웃: header 56 + day칩 42 + legend 30 = 128 ---- */
+  header {
+    position:fixed; top:0; left:0; right:0; height:56px; z-index:1000;
+    background:#14181f; color:#fff; display:flex; align-items:center; justify-content:space-between;
+    padding:0 14px; padding-top:env(safe-area-inset-top);
+    box-shadow:0 2px 8px rgba(0,0,0,.3);
+  }
+  header h1 { font-size:15px; margin:0; font-weight:600; }
+  header .sub { font-size:11px; color:#9aa3b2; margin-top:1px; }
+
+  #daybar {
+    position:fixed; top:56px; left:0; right:0; height:42px; z-index:1000;
+    background:#14181f; display:flex; gap:6px; align-items:center;
+    padding:0 10px; overflow-x:auto; white-space:nowrap;
+    border-top:1px solid #262b36; -webkit-overflow-scrolling:touch;
+  }
+  #daybar::-webkit-scrollbar { display:none; }
+  .day-chip {
+    flex:0 0 auto; padding:5px 10px; border-radius:14px; cursor:pointer;
+    background:#1d232e; color:#9aa3b2; font-size:11.5px; font-weight:600;
+    border:1px solid #262b36; line-height:1.2; text-align:center;
+    transition: background .15s, color .15s;
+  }
+  .day-chip .dc-date { display:block; font-size:9.5px; font-weight:500; opacity:.75; }
+  .day-chip.active { background:#4f8cff; color:#fff; border-color:#4f8cff; }
+  .day-chip.empty { opacity:.5; }
+  .day-chip.active.empty { opacity:1; background:#3a4657; border-color:#3a4657; }
+
+  #legend {
+    position:fixed; top:98px; left:0; right:0; height:30px; z-index:1000;
+    background:#14181f; color:#fff; padding:0 12px; font-size:11px;
+    display:flex; gap:14px; align-items:center; overflow-x:auto; white-space:nowrap;
+    border-top:1px solid #262b36; border-bottom:1px solid #262b36;
+  }
+  #legend::-webkit-scrollbar { display:none; }
+  .legend-item { display:flex; align-items:center; gap:5px; flex:0 0 auto; }
+  .legend-line { width:20px; height:4px; border-radius:2px; display:inline-block; }
+
+  #map { position:absolute; top:128px; bottom:0; left:0; right:0; }
+
+  /* ---- 팝업 ---- */
+  .leaflet-popup-content-wrapper { border-radius:12px; }
+  .popup-title { font-weight:700; font-size:13.5px; margin-bottom:4px; }
+  .popup-time { color:#4f8cff; font-weight:600; font-size:12px; margin-bottom:6px; }
+  .popup-row { font-size:12px; margin:3px 0; line-height:1.4; }
+  .popup-row b { color:#333; }
+  .popup-note { font-size:11.5px; color:#a15c00; background:#fff6e6; border-radius:6px; padding:6px 8px; margin-top:6px; line-height:1.4; }
+
+  .divnum {
+    background:#4f8cff; color:#fff; border-radius:50%; width:26px; height:26px;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
+    border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4);
+  }
+  .divnum.food { background:#e0574c; }
+  .divnum.attraction { background:#8a5cf5; }
+  .divnum.transit { background:#5b6572; }
+
+  /* ---- 스크롤 피커 ---- */
+  #picker-label {
+    position:fixed; z-index:1000; right:14px; bottom:calc(242px + env(safe-area-inset-bottom));
+    max-width:180px; background:rgba(20,24,31,.92); color:#fff; font-size:11.5px;
+    padding:7px 11px; border-radius:12px; text-align:right; line-height:1.35;
+    box-shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+  #picker-label .pl-num { color:#4f8cff; font-weight:800; margin-right:4px; }
+  #picker-wrap {
+    position:fixed; right:14px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:1000;
+    width:172px; height:220px; border-radius:18px; overflow:hidden;
+    background:rgba(20,24,31,.94); box-shadow:0 6px 20px rgba(0,0,0,.45);
+  }
+  #picker-highlight {
+    position:absolute; left:6px; right:6px; top:88px; height:44px; z-index:2;
+    background:rgba(79,140,255,.14); border-top:1px solid rgba(79,140,255,.55);
+    border-bottom:1px solid rgba(79,140,255,.55); border-radius:8px; pointer-events:none;
+  }
+  #picker-scroll {
+    position:absolute; inset:0; overflow-y:scroll; -webkit-overflow-scrolling:touch;
+    scroll-snap-type:y mandatory; padding:88px 0;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 30%, #000 70%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 30%, #000 70%, transparent 100%);
+  }
+  #picker-scroll::-webkit-scrollbar { display:none; }
+  .picker-row {
+    height:44px; display:flex; align-items:center; justify-content:center; gap:6px;
+    scroll-snap-align:center; color:#6b7484; font-size:13px; font-weight:500; cursor:pointer;
+    transition: color .15s ease, font-size .15s ease, font-weight .15s ease;
+  }
+  .picker-row .pr-num {
+    width:20px; height:20px; border-radius:50%; background:#1d232e; color:#9aa3b2;
+    display:flex; align-items:center; justify-content:center; font-size:10px; flex:0 0 auto;
+    transition: background .15s ease, color .15s ease;
+  }
+  .picker-row.active { color:#fff; font-size:14.5px; font-weight:700; }
+  .picker-row.active .pr-num { background:#4f8cff; color:#fff; }
+
+  /* ---- 미정 날짜 안내 카드 ---- */
+  #placeholder {
+    position:fixed; z-index:999; left:50%; top:50%; transform:translate(-50%,-40%);
+    width:min(86vw, 400px); background:rgba(20,24,31,.96); color:#e8ecf2;
+    border-radius:16px; padding:20px 18px; box-shadow:0 8px 30px rgba(0,0,0,.5);
+    display:none; line-height:1.6; font-size:13px;
+  }
+  #placeholder h2 { margin:0 0 8px; font-size:15px; color:#4f8cff; }
+  #placeholder .ph-note { color:#9aa3b2; font-size:12px; margin-top:10px; }
+
+  /* ---- 일별 지출 요약 (우측상단) ---- */
+  #day-summary {
+    position:fixed; top:136px; right:10px; z-index:999; display:none; cursor:pointer;
+    background:rgba(20,24,31,.92); color:#fff; font-size:11.5px; font-weight:700;
+    padding:6px 10px; border-radius:10px; box-shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+  #day-summary .ds-lbl { color:#9aa3b2; font-size:10px; font-weight:500; margin:0 2px 0 6px; }
+  #day-summary .ds-lbl:first-child { margin-left:0; }
+
+  /* ---- 팝업 버튼/태그 ---- */
+  .pbtn-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+  .pbtn {
+    flex:1 1 auto; text-align:center; font-size:11.5px; font-weight:600; padding:6px 8px;
+    border-radius:8px; background:#eef2f8; color:#2c3a4f; text-decoration:none; border:none; cursor:pointer;
+    font-family:inherit;
+  }
+  .pbtn.spend { background:#4f8cff; color:#fff; }
+  .cat-tag { font-size:10px; background:#eef2f8; color:#5b6572; border-radius:5px; padding:1px 5px; margin-left:4px; }
+  .popup-row.spent { color:#1d7a3c; font-weight:600; }
+
+  /* ---- GPS 버튼 ---- */
+  #gps-btn {
+    position:fixed; left:14px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:1000;
+    width:44px; height:44px; border-radius:50%; border:none; font-size:18px; cursor:pointer;
+    background:rgba(20,24,31,.94); color:#fff; box-shadow:0 6px 20px rgba(0,0,0,.45);
+  }
+  #gps-btn.on { background:#4f8cff; }
+  .gps-dot { width:14px; height:14px; border-radius:50%; background:#4f8cff; border:3px solid #fff; box-shadow:0 0 8px rgba(79,140,255,.8); }
+
+  /* ---- 지출 입력 시트 ---- */
+  #spend-sheet {
+    position:fixed; left:0; right:0; bottom:0; z-index:2000; display:none;
+    background:#14181f; color:#fff; border-radius:18px 18px 0 0;
+    padding:16px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow:0 -8px 30px rgba(0,0,0,.5);
+  }
+  #spend-sheet h3 { margin:0 0 12px; font-size:14px; }
+  .ss-row { display:flex; gap:8px; margin-bottom:10px; align-items:center; }
+  #ss-amt, #ss-memo {
+    flex:1; min-width:0; background:#1d232e; border:1px solid #2c3442; color:#fff;
+    border-radius:10px; padding:10px 12px; font-size:14px; font-family:inherit;
+  }
+  .pay-btn { padding:10px 14px; border-radius:10px; background:#1d232e; color:#9aa3b2; border:1px solid #2c3442; font-size:13px; cursor:pointer; font-family:inherit; }
+  .pay-btn.sel { background:#4f8cff; color:#fff; border-color:#4f8cff; }
+  .ss-actions { display:flex; gap:8px; }
+  .ss-actions button { flex:1; padding:11px; border-radius:10px; border:none; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+  #ss-save { background:#4f8cff; color:#fff; }
+  #ss-del { background:#3a2026; color:#e0574c; }
+  #ss-close { background:#1d232e; color:#9aa3b2; }
+
+  /* ---- 전체 지출 모달 ---- */
+  #expense-modal { position:fixed; inset:0; z-index:2100; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; }
+  #expense-card { width:min(92vw,430px); max-height:80vh; overflow-y:auto; background:#14181f; color:#fff; border-radius:16px; padding:18px; }
+  #expense-card h2 { font-size:15px; margin:0 0 12px; color:#4f8cff; }
+  #expense-card h4 { font-size:12.5px; margin:16px 0 6px; color:#9aa3b2; }
+  #expense-card table { width:100%; border-collapse:collapse; font-size:12px; }
+  #expense-card th, #expense-card td { padding:6px 4px; text-align:right; border-bottom:1px solid #262b36; }
+  #expense-card th:first-child, #expense-card td:first-child { text-align:left; }
+  #expense-card th { color:#9aa3b2; font-weight:600; }
+  .em-total td { font-weight:800; color:#fff; border-top:2px solid #3a4657; }
+  #em-close { margin-top:14px; width:100%; padding:11px; border-radius:10px; border:none; background:#1d232e; color:#9aa3b2; font-weight:700; cursor:pointer; font-family:inherit; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1 id="hd-title">NYC 여행 전체 일정</h1>
+    <div class="sub" id="hd-sub">10/6(화) ~ 10/20(화) · 14박 15일</div>
+  </div>
+  <div class="sub" style="text-align:right">탭하면 상세정보</div>
+</header>
+
+<div id="daybar"></div>
+<div id="legend"></div>
+<div id="map"></div>
+<div id="placeholder"></div>
+
+<div id="day-summary"></div>
+<button id="gps-btn" title="내 위치 표시">📍</button>
+
+<div id="spend-sheet">
+  <h3 id="ss-title"></h3>
+  <div class="ss-row">
+    <input id="ss-amt" type="number" inputmode="decimal" step="0.01" placeholder="금액 ($, 2인 합계)">
+    <button class="pay-btn" id="pay-card">카드</button>
+    <button class="pay-btn" id="pay-cash">현금</button>
+  </div>
+  <div class="ss-row"><input id="ss-memo" type="text" placeholder="먹은 메뉴 / 메모 (선택)"></div>
+  <div class="ss-actions">
+    <button id="ss-save">저장</button>
+    <button id="ss-del">삭제</button>
+    <button id="ss-close">닫기</button>
+  </div>
+</div>
+
+<div id="expense-modal"><div id="expense-card">
+  <h2>여행 지출 현황 (2인 합계, USD)</h2>
+  <div id="em-body"></div>
+  <button id="em-close">닫기</button>
+</div></div>
+
+<div id="picker-label">스크롤해서 스팟 선택 ▾</div>
+<div id="picker-wrap">
+  <div id="picker-highlight"></div>
+  <div id="picker-scroll"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+'use strict';
+/* ============================================================
+   데이터 구조 (확장 방법)
+   - DAYS 배열에 날짜별 객체를 추가/수정하면 UI 전체가 자동 반영됨
+   - stops: {type:'food'|'attraction'|'transit', name, coord:[lat,lng], time, stay, menu, price, note}
+   - modes: stops[i] -> stops[i+1] 구간의 이동수단 ('uber'|'walk'|'subway'|'bus')
+     → 길이는 반드시 stops.length - 1
+   - stops가 비어 있으면 "미정" 카드가 표시됨 (placeholder 텍스트 사용)
+   ============================================================ */
+
+const MODE_META = {
+  uber:   { color:'#e07a1f', dash:'8,8', weight:4, label:'Uber/Lyft' },
+  walk:   { color:'#2fa84f', dash:null,  weight:4, label:'도보' },
+  subway: { color:'#3f6fe0', dash:null,  weight:6, label:'지하철' },
+  bus:    { color:'#d0312d', dash:null,  weight:5, label:'TopView 버스' },
+};
+
+const DAYS = [
+{ day:1, date:'10/6', dow:'화', title:'Day 1 · 도착', sub:'EWR 도착 → 호텔 이동만',
+  stops:[
+    { type:'transit', name:'뉴어크 공항 (EWR)', coord:[40.6895,-74.1745],
+      time:'22:30 도착 (현지시간)', stay:'-', menu:'-', price:'-',
+      note:'에어프레미아 YP131. 입국심사+수하물 약 1~1.5시간 예상 — 당일 일정 없음' },
+    { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
+      time:'자정 전후 체크인', stay:'-', menu:'-', price:'Uber/Lyft 약 $70~95 + 톨',
+      note:'약 19마일·40~50분. 심야라 대중교통 비추천 — 라이드셰어로 바로 이동. 두 앱 실시간가 비교' },
+  ],
+  modes:['uber'] },
+
+{ day:2, date:'10/7', dow:'수', title:'Day 2 · 브릿지+미드타운', sub:'브루클린 브릿지 → 미드타운 → 록펠러 → 퀸즈',
+  stops:[
+    { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
+      time:'08:30 출발', stay:'-', menu:'-', price:'-',
+      note:'오늘 첫 Uber/Lyft 구간. Lyft $17 견적 / Uber 추정 $16~19 — 짧은 구간이라 차이 미미, 승차 직전 실시간가 비교' },
+    { type:'transit', name:'High St 역 (A·C)', coord:[40.7023,-73.9909],
+      time:'08:45 도착', stay:'-', menu:'-', price:'약 $17',
+      note:'2.5마일·12분 구간. 여기서부터 도보로 브루클린 브릿지 진입로까지 이동' },
+    { type:'transit', name:'브루클린 브릿지 진입', coord:[40.7038,-73.9958],
+      time:'08:45~08:53', stay:'-', menu:'-', price:'무료',
+      note:'Cadman Plaza 경유 도보 8분' },
+    { type:'attraction', name:'브루클린 브릿지 도보 횡단', coord:[40.7075,-74.0015],
+      time:'08:53~09:25', stay:'약 30분', menu:'-', price:'무료',
+      note:'1.1마일, 사진 포함 25~35분. 평일 오전이라 주말보다 한산' },
+    { type:'transit', name:'Brooklyn Bridge-City Hall 역', coord:[40.7135,-74.0044],
+      time:'09:25 도착', stay:'-', menu:'-', price:'-',
+      note:'도보 3분 후 6호선(로컬) 탑승, 환승 없이 51 St까지' },
+    { type:'transit', name:'51 St 역 (6호선)', coord:[40.7571,-73.9719],
+      time:'09:50 도착', stay:'-', menu:'-', price:'$2.90/인',
+      note:'6호선은 51 St 정차, 4/5는 급행이라 통과함 — 반드시 6호선' },
+    { type:'food', name:'Ess-a-Bagel', coord:[40.7580,-73.9682],
+      time:'09:53~10:13', stay:'20분', menu:'에브리씽 베이글+록스&스캘리언 크림치즈', price:'$15.95 (1개 기준)',
+      note:'카운터서비스 — 주문만 하고 나가는 구조, 팁 불필요. 06:00 오픈' },
+    { type:'attraction', name:'Grand Central Terminal', coord:[40.7527,-73.9772],
+      time:'10:25~10:50', stay:'25분', menu:'관람', price:'무료',
+      note:'메인 콩코스·Whispering Gallery' },
+    { type:'food', name:'Culture Espresso', coord:[40.7524,-73.9834],
+      time:'11:02~11:07', stay:'5분(주문·픽업만)', menu:'라떼', price:'$4.50',
+      note:'카운터서비스, 팁 선택. 커피 들고 바로 브라이언트파크로 이동' },
+    { type:'attraction', name:'Bryant Park', coord:[40.7536,-73.9832],
+      time:'11:09~11:44', stay:'35분', menu:'여유·휴식', price:'무료',
+      note:'잔디밭/좌석에서 커피 마시며 느긋하게' },
+    { type:'food', name:'Chick-fil-A (1180 6th Ave)', coord:[40.7577,-73.9822],
+      time:'11:54~12:19', stay:'25분', menu:'Grilled Market Salad (보울형, 2인 나눠먹기)', price:'$8.49~9.99',
+      note:"카운터서비스, 팁 불필요. 'Bowl' 메뉴는 조식 전용이라 마켓샐러드로 대체" },
+    { type:'attraction', name:'Times Square', coord:[40.7580,-73.9855],
+      time:'12:24~13:09', stay:'45분', menu:'-', price:'무료',
+      note:'사진·구경 위주' },
+    { type:'attraction', name:'Central Park 남단 (Columbus Circle)', coord:[40.7681,-73.9819],
+      time:'13:29~15:35', stay:'약 2시간6분', menu:'여가·산책', price:'무료',
+      note:'MoMA는 관람시간 길어서 오늘 제외, 다른 날 배치 예정' },
+    { type:'attraction', name:'Top of the Rock', coord:[40.7587,-73.9787],
+      time:'17:00~19:00 입장', stay:'2시간', menu:'전망대(석양 슬롯)', price:'$52/인 = $104 (2인, 확정)',
+      note:'18:30 일몰 → 19:00까지 야경. 15:53~16:13 록펠러 인근 델리에서 간단 요기($8~12) 먼저' },
+    { type:'food', name:"Adel's Famous Halal Food", coord:[40.7597,-73.9799],
+      time:'19:05~19:20', stay:'15~20분(포장)', menu:'치킨 오버 라이스', price:'$9 현금 / 앱주문 $12~14',
+      note:'노점 카트, 예약 불가 — Seamless/Grubhub 픽업 주문으로 40~100명 줄 스킵 권장. 18:40쯤 미리 주문' },
+    { type:'transit', name:'47-50 Sts-Rockefeller Ctr 역', coord:[40.7587,-73.9814],
+      time:'19:20~19:40', stay:'-', menu:'-', price:'$2.90/인',
+      note:'F선 탑승 (E는 이 역 미정차), Court Sq-23 St까지 약 15분' },
+    { type:'transit', name:'Court Sq-23 St 역 (Queens)', coord:[40.7473,-73.9459],
+      time:'19:40 도착', stay:'-', menu:'-', price:'-',
+      note:'여기서 Uber/Lyft 호출' },
+    { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
+      time:'20:00~20:10 도착', stay:'-', menu:'-', price:'Lyft $33(견적) / Uber 추정 $34~39',
+      note:'5마일·18~20분. 저녁 시간대 서지 가능성 — 두 앱 다 확인 후 승차' },
+  ],
+  modes:['uber','walk','walk','walk','subway','walk','walk','walk','walk','walk','walk','walk','walk','walk','walk','subway','uber'] },
+
+{ day:3, date:'10/8', dow:'목', title:'Day 3 · TopView 버스', sub:'데이 루프(다운타운) + 나이트투어 야경',
+  stops:[
+    { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
+      time:'08:30 출발', stay:'-', menu:'-', price:'-',
+      note:'Uber/Lyft로 Atlantic Av-Barclays까지 10~12분. Uber 추정 $11~13 / Lyft $11~12' },
+    { type:'transit', name:'Atlantic Av-Barclays Ctr 역', coord:[40.6840,-73.9772],
+      time:'08:42 도착 → 08:50 탑승', stay:'-', menu:'-', price:'$2.90/인',
+      note:'N/Q선 환승 없이 Times Sq-42 St 직행 (22~25분) — 먼저 오는 것 탑승' },
+    { type:'transit', name:'Times Sq-42 St 역', coord:[40.7553,-73.9870],
+      time:'09:15 도착', stay:'-', menu:'-', price:'-',
+      note:'7th Ave 따라 북쪽으로 도보 8분 → 아침식사' },
+    { type:'food', name:'Bibble & Sip', coord:[40.7629,-73.9852],
+      time:'09:23~09:58', stay:'35분', menu:'크림퍼프(말차/얼그레이) + 라떼', price:'퍼프 $6~8 · 라떼 $6.25 (1인 $12~14)',
+      note:'카운터서비스, 팁 선택. 평일 08:00 오픈. 253 W 51st St' },
+    { type:'transit', name:'TopView Stop 1 (7th Ave 47-48th)', coord:[40.7607,-73.9834],
+      time:'10:02 도착 → 10:15 탑승', stay:'-', menu:'-', price:'앳홈트립 티켓 $62/인=$124 포함',
+      note:'앱에서 바우처→티켓 교환 미리 완료. 2층 앞좌석 추천' },
+    { type:'attraction', name:'Battery Park + Charging Bull', coord:[40.7040,-74.0152],
+      time:'11:25~12:05', stay:'40분', menu:'자유의 여신상 원경·황소상', price:'무료',
+      note:'다운타운 루프 65~75분 탑승 관광 후 하차 — 오늘 유일한 하차 구간. 여신상은 원경으로 충분' },
+    { type:'food', name:'Eataly NYC Downtown (3층)', coord:[40.7103,-74.0123],
+      time:'12:17~13:27', stay:'70분', menu:'마르게리타 피자 + 파스타 셰어', price:'피자 $24~28 · 2인 팁 포함 $60~75',
+      note:'착석 레스토랑 — 팁 18~20% 필요. 평일 11~15시 2코스 런치 프리픽스 있음. 101 Liberty St' },
+    { type:'attraction', name:'9/11 Memorial + Oculus', coord:[40.7115,-74.0125],
+      time:'13:30~14:10', stay:'40분', menu:'관람', price:'무료 (야외 메모리얼 풀)',
+      note:'Oculus 내부 화장실 이용 가능. 박물관 입장은 오늘 생략' },
+    { type:'transit', name:'One World Trade 정류장 (재탑승)', coord:[40.7130,-74.0122],
+      time:'14:10 재탑승', stay:'-', menu:'-', price:'포함',
+      note:'남은 루프(트라이베카·소호 동측) 앉아서 관광 → 15:20 Times Square 복귀' },
+    { type:'attraction', name:'Bryant Park 휴식', coord:[40.7536,-73.9832],
+      time:'15:30~16:50', stay:'약 1시간20분', menu:'휴식·가벼운 쇼핑', price:'무료',
+      note:'벤치 휴식 위주 — 체력 남으면 Macy\'s 정도만. 저녁 전 재충전' },
+    { type:'food', name:"Junior's Restaurant (W 45th St)", coord:[40.7570,-73.9860],
+      time:'16:58~18:20', stay:'약 1시간20분', menu:'디너 콤보 + 오리지널 치즈케이크', price:'메인 $20~30 · 치즈케이크 $11~13 · 2인 팁 포함 $70~85',
+      note:'착석 — 팁 18~20%. 17시 이른 저녁으로 웨이팅 최소화. 목요일 07:00~24:00 영업. 1515 Broadway' },
+    { type:'transit', name:'TopView Stop 1 집결 (나이트투어)', coord:[40.7607,-73.9834],
+      time:'18:26 도착 → 19:00 출발', stay:'-', menu:'-', price:'티켓 $124에 포함',
+      note:'15분 전 도착 규정. 일몰 18:26 → 투어 내내 야경. 출발시간 당일 앱 재확인' },
+    { type:'attraction', name:'나이트투어 종료 (Times Square)', coord:[40.7580,-73.9855],
+      time:'20:30 종료', stay:'-', menu:'맨해튼→브루클린 두 다리 야경', price:'포함',
+      note:'약 1시간30분: 5th Ave→엠파이어→차이나타운→맨해튼브릿지→브루클린→복귀. 10월 밤 2층 오픈탑 춥다 — 겉옷·담요 필수' },
+    { type:'transit', name:'Times Sq-42 St 역', coord:[40.7553,-73.9870],
+      time:'20:40 탑승', stay:'-', menu:'-', price:'$2.90/인',
+      note:'N/Q선으로 Atlantic Av-Barclays까지 22~25분' },
+    { type:'transit', name:'Atlantic Av-Barclays Ctr 역', coord:[40.6840,-73.9772],
+      time:'21:05 도착', stay:'-', menu:'-', price:'-',
+      note:'여기서 Uber/Lyft 호출 — 밤 시간대 서지 가능, 두 앱 비교' },
+    { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
+      time:'21:22 도착', stay:'-', menu:'-', price:'Uber 추정 $12~15 / Lyft $11~14',
+      note:'Day 3 총 예상 지출(2인): 약 $314~352 (티켓 $124 포함)' },
+  ],
+  modes:['uber','subway','walk','walk','bus','walk','walk','walk','bus','walk','walk','bus','walk','subway','uber'] },
+
+{ day:4,  date:'10/9',  dow:'금', title:'Day 4',  sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: 전망대(One World / Edge / Empire State / Summit One Vanderbilt), MoMA(다른 날 이월분)' },
+{ day:5,  date:'10/10', dow:'토', title:'Day 5',  sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: 헬기투어(HeliNY, Pier 6 Downtown Heliport) — 주말 혼잡 고려해 예약 필수' },
+{ day:6,  date:'10/11', dow:'일', title:'Day 6',  sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: 브루클린 로컬 데이 (DUMBO · 카페투어) — 휴식일 성격' },
+{ day:7,  date:'10/12', dow:'월', title:'Day 7',  sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: SoHo · 첼시 (첼시마켓 · 하이라인)' },
+{ day:8,  date:'10/13', dow:'화', title:'Day 8',  sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: 윌리엄스버그 (카페 · 빈티지 · 이스트리버 뷰)' },
+{ day:9,  date:'10/14', dow:'수', title:'Day 9',  sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: 미정 — 전망대/미술관 중 남은 것 배치' },
+{ day:10, date:'10/15', dow:'목', title:'Day 10', sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: 미정' },
+{ day:11, date:'10/16', dow:'금', title:'Day 11', sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: 미정' },
+{ day:12, date:'10/17', dow:'토', title:'Day 12', sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: 미정 — 주말이라 인기 스팟은 피하고 로컬 동네 추천' },
+{ day:13, date:'10/18', dow:'일', title:'Day 13', sub:'상세 미정', stops:[], modes:[],
+  placeholder:'후보 테마: 미정' },
+{ day:14, date:'10/19', dow:'월', title:'Day 14 · 마지막 날', sub:'상세 미정 + 밤 공항 이동', stops:[], modes:[],
+  placeholder:'낮 일정 미정 (가볍게 + 기념품). 귀국편이 10/20 새벽 01:00 EWR 출발이므로 <b>10/19 밤 21:00 호텔 출발</b> 권장 — 22:00 공항 도착(출발 3시간 전). Uber/Lyft 약 $70~95 + 톨' },
+{ day:15, date:'10/20', dow:'화', title:'Day 15 · 귀국', sub:'YP132 · 01:00 EWR 출발', stops:[], modes:[],
+  placeholder:'에어프레미아 YP132, 10/20(화) 새벽 01:00 뉴어크(EWR) 출발. 실제 공항 이동은 Day 14(10/19) 밤에 완료 — 이 날은 기내에서 시작' },
+];
+
+/* ============================================================
+   이하 렌더링 로직 — 데이터만 고치면 아래는 손댈 필요 없음
+   ============================================================ */
+const ROW_H = 44;
+const map = L.map('map', { zoomControl:false }).setView([40.7128,-74.0060], 12);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20, subdomains:'abcd',
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+}).addTo(map);
+
+const dayLayer = L.layerGroup().addTo(map);
+const daybarEl = document.getElementById('daybar');
+const legendEl = document.getElementById('legend');
+const phEl = document.getElementById('placeholder');
+const scrollEl = document.getElementById('picker-scroll');
+const labelEl = document.getElementById('picker-label');
+const pickerWrap = document.getElementById('picker-wrap');
+const hdTitle = document.getElementById('hd-title');
+const hdSub = document.getElementById('hd-sub');
+
+let markers = [], rows = [];
+let currentIndex = 0, settleTimer = null, programmaticScroll = false;
+let curDay = null;
+
+/* --- day 칩 생성 --- */
+const chips = [];
+DAYS.forEach((d, i) => {
+  const c = document.createElement('div');
+  c.className = 'day-chip' + (d.stops.length ? '' : ' empty');
+  c.innerHTML = `D${d.day}<span class="dc-date">${d.date} ${d.dow}</span>`;
+  c.addEventListener('click', () => selectDay(i));
+  daybarEl.appendChild(c);
+  chips.push(c);
+});
+
+function buildLegend(day){
+  const used = [...new Set(day.modes)];
+  legendEl.innerHTML = used.length
+    ? used.map(m => `<div class="legend-item"><span class="legend-line" style="background:${MODE_META[m].color}"></span>${MODE_META[m].label}</div>`).join('')
+    : '<div class="legend-item" style="color:#6b7484">일정 확정 후 이동수단이 표시됩니다</div>';
+}
+
+function selectDay(i){
+  curDay = i;
+  const day = DAYS[i];
+  chips.forEach((c,k)=> c.classList.toggle('active', k===i));
+  chips[i].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+  hdTitle.textContent = day.title;
+  hdSub.textContent = `${day.date}(${day.dow}) · ${day.sub}`;
+  try { localStorage.setItem('nycLastDay', String(i)); } catch(e){}
+
+  dayLayer.clearLayers();
+  markers = []; rows = []; currentIndex = 0;
+  scrollEl.innerHTML = '';
+  buildLegend(day);
+  updateDaySummary(i);
+
+  if (!day.stops.length){
+    phEl.style.display = 'block';
+    phEl.innerHTML = `<h2>${day.title} — ${day.date}(${day.dow})</h2>${day.placeholder || '상세 일정 미정'}<div class="ph-note">확정되면 이 파일의 DAYS 데이터에 stops를 채우면 지도·피커가 자동 생성됩니다.</div>`;
+    pickerWrap.style.display = 'none';
+    labelEl.style.display = 'none';
+    map.setView([40.7300,-73.9850], 11);
+    return;
+  }
+
+  phEl.style.display = 'none';
+  pickerWrap.style.display = 'block';
+  labelEl.style.display = 'block';
+  labelEl.innerHTML = '스크롤해서 스팟 선택 ▾';
+
+  day.stops.forEach((s, idx) => {
+    const icon = L.divIcon({
+      className:'', html:`<div class="divnum ${s.type}">${idx}</div>`,
+      iconSize:[26,26], iconAnchor:[13,13]
+    });
+    const m = L.marker(s.coord, { icon }).addTo(dayLayer);
+    m.bindPopup(() => buildPopup(i, idx), { maxWidth:270 });
+    m.on('click', () => focusStop(idx, 'marker'));
+    markers.push(m);
+  });
+
+  for (let k=0; k<day.stops.length-1; k++){
+    const meta = MODE_META[day.modes[k]] || MODE_META.walk;
+    const seg = [day.stops[k].coord, day.stops[k+1].coord];
+    L.polyline(seg, { color:'#ffffff', weight: meta.weight+4, opacity:0.9 }).addTo(dayLayer);
+    L.polyline(seg, { color: meta.color, weight: meta.weight, opacity:1, dashArray: meta.dash }).addTo(dayLayer);
+  }
+
+  map.fitBounds(L.latLngBounds(day.stops.map(s=>s.coord)), { padding:[30,30] });
+
+  day.stops.forEach((s, idx) => {
+    const row = document.createElement('div');
+    row.className = 'picker-row';
+    let nm = s.name;
+    if (nm.length > 11) nm = nm.slice(0,10) + '…';
+    row.innerHTML = `<span class="pr-num">${idx}</span><span>${nm}</span>`;
+    row.addEventListener('click', () => scrollToIndex(idx));
+    scrollEl.appendChild(row);
+    rows.push(row);
+  });
+  programmaticScroll = true;
+  scrollEl.scrollTop = 0;
+  setTimeout(()=> programmaticScroll = false, 200);
+  updateActiveRow(0);
+}
+
+function updateActiveRow(i){ rows.forEach((r,k)=> r.classList.toggle('active', k===i)); }
+function updatePickerLabel(i){
+  labelEl.innerHTML = `<span class="pl-num">${i}</span>${DAYS[curDay].stops[i].name}`;
+}
+function scrollToIndex(i){
+  programmaticScroll = true;
+  scrollEl.scrollTo({ top: i*ROW_H, behavior:'smooth' });
+  setTimeout(()=> programmaticScroll = false, 450);
+}
+function focusStop(i, source){
+  currentIndex = i;
+  updateActiveRow(i);
+  updatePickerLabel(i);
+  if (source !== 'picker') scrollToIndex(i);
+  if (source !== 'marker') map.flyTo(DAYS[curDay].stops[i].coord, 16, { duration:0.5 });
+  markers[i].openPopup();
+}
+
+scrollEl.addEventListener('scroll', () => {
+  if (!DAYS[curDay] || !DAYS[curDay].stops.length) return;
+  const N = DAYS[curDay].stops.length;
+  const idx = Math.max(0, Math.min(N-1, Math.round(scrollEl.scrollTop / ROW_H)));
+  updateActiveRow(idx);
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(() => {
+    if (programmaticScroll) return;
+    if (idx !== currentIndex || labelEl.textContent.includes('선택')) {
+      currentIndex = idx;
+      updatePickerLabel(idx);
+      map.flyTo(DAYS[curDay].stops[idx].coord, 16, { duration:0.5 });
+      markers[idx].openPopup();
+    }
+  }, 130);
+}, { passive:true });
+
+/* ============================================================
+   지출 관리
+   - EST[day번호][stop인덱스] = [예상최소, 예상최대, 카테고리] (2인 합계 USD)
+   - 실제 지출은 팝업의 "지출 입력"으로 기입 → localStorage 저장
+   ============================================================ */
+const CATS = ['교통','식사','카페·간식','입장·투어','쇼핑','기타'];
+const EST = {
+  1: { 1:[70,95,'교통'] },
+  2: { 0:[16,19,'교통'], 4:[5.8,5.8,'교통'], 6:[16,16,'식사'], 8:[4.5,9,'카페·간식'],
+       10:[8.5,10,'식사'], 13:[104,104,'입장·투어'], 14:[24,28,'식사'], 15:[5.8,5.8,'교통'], 17:[33,39,'교통'] },
+  3: { 0:[11,13,'교통'], 1:[5.8,5.8,'교통'], 3:[25,28,'카페·간식'], 4:[124,124,'입장·투어'],
+       6:[60,75,'식사'], 10:[70,85,'식사'], 13:[5.8,5.8,'교통'], 15:[12,15,'교통'] },
+};
+
+function loadSpend(){ try { return JSON.parse(localStorage.getItem('nycSpendV1')) || {}; } catch(e){ return {}; } }
+function persistSpend(){ try { localStorage.setItem('nycSpendV1', JSON.stringify(SPEND)); } catch(e){} }
+let SPEND = loadSpend();
+const spendKey = (dayNo, si) => 'd' + dayNo + 's' + si;
+const fmt$ = v => '$' + (Math.round(v*100)/100);
+
+/* --- 팝업 생성 (예상/실제 지출 + 딥링크 버튼 포함) --- */
+function buildPopup(di, si){
+  const d = DAYS[di], s = d.stops[si];
+  const est = (EST[d.day] || {})[si];
+  const sp = SPEND[spendKey(d.day, si)];
+  const lat = s.coord[0], lng = s.coord[1];
+  const gmap = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  const uber = `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${encodeURIComponent(s.name)}`;
+  const lyft = `https://ride.lyft.com/ridetype?id=lyft&destination[latitude]=${lat}&destination[longitude]=${lng}`;
+  const extra = (s.links || []).map(l => `<a class="pbtn" href="${l.url}" target="_blank">${l.label}</a>`).join('');
+  return `
+    <div class="popup-title">${si}. ${s.name}</div>
+    <div class="popup-time">${s.time}${s.stay && s.stay!=='-' ? ' · 체류 '+s.stay : ''}</div>
+    ${s.menu && s.menu!=='-' ? `<div class="popup-row"><b>메뉴</b> ${s.menu}</div>` : ''}
+    ${s.price && s.price!=='-' ? `<div class="popup-row"><b>가격</b> ${s.price}</div>` : ''}
+    ${est ? `<div class="popup-row"><b>예상</b> ${fmt$(est[0])}${est[1]>est[0] ? '~'+fmt$(est[1]) : ''}<span class="cat-tag">${est[2]}</span></div>` : ''}
+    ${sp ? `<div class="popup-row spent"><b>실제</b> ${fmt$(sp.amt)} · ${sp.pay==='cash'?'현금':'카드'}${sp.memo ? ' · '+sp.memo : ''}</div>` : ''}
+    <div class="popup-note">${s.note}</div>
+    <div class="pbtn-row">
+      <a class="pbtn" href="${gmap}" target="_blank">길찾기</a>
+      <a class="pbtn" href="${uber}" target="_blank">Uber</a>
+      <a class="pbtn" href="${lyft}" target="_blank">Lyft</a>
+      ${extra}
+      <button class="pbtn spend" onclick="openSpend(${di},${si})">지출 ${sp ? '수정' : '입력'}</button>
+    </div>`;
+}
+
+/* --- 일별 요약 (우측상단) --- */
+function estSumDay(d){
+  const t = EST[d.day]; if (!t) return null;
+  let mn=0, mx=0;
+  for (const k in t){ mn += t[k][0]; mx += t[k][1]; }
+  return [mn, mx];
+}
+function actSumDay(d){
+  let a = 0;
+  d.stops.forEach((s, k) => { const sp = SPEND[spendKey(d.day, k)]; if (sp) a += sp.amt; });
+  return a;
+}
+function updateDaySummary(i){
+  const d = DAYS[i], el = document.getElementById('day-summary');
+  if (!d.stops.length){ el.style.display = 'none'; return; }
+  const est = estSumDay(d), act = actSumDay(d);
+  el.style.display = 'block';
+  el.innerHTML =
+    `<span class="ds-lbl">예상</span>${est ? fmt$(Math.round(est[0]))+(est[1]>est[0] ? '~'+fmt$(Math.round(est[1])) : '') : '—'}` +
+    `<span class="ds-lbl">실제</span>${fmt$(act)}`;
+}
+
+/* --- 지출 입력 시트 --- */
+let sheetTarget = null, curPay = 'card';
+const sheetEl = document.getElementById('spend-sheet');
+function setPay(p){
+  curPay = p;
+  document.getElementById('pay-card').classList.toggle('sel', p==='card');
+  document.getElementById('pay-cash').classList.toggle('sel', p==='cash');
+}
+function openSpend(di, si){
+  sheetTarget = [di, si];
+  const d = DAYS[di], sp = SPEND[spendKey(d.day, si)] || {};
+  document.getElementById('ss-title').textContent = si + '. ' + d.stops[si].name;
+  document.getElementById('ss-amt').value = sp.amt != null ? sp.amt : '';
+  document.getElementById('ss-memo').value = sp.memo || '';
+  setPay(sp.pay || 'card');
+  sheetEl.style.display = 'block';
+}
+function closeSheet(){ sheetEl.style.display = 'none'; sheetTarget = null; }
+function refreshAfterSpend(di, si){
+  if (di === curDay && markers[si]) markers[si].setPopupContent(buildPopup(di, si));
+  updateDaySummary(curDay);
+}
+document.getElementById('pay-card').addEventListener('click', () => setPay('card'));
+document.getElementById('pay-cash').addEventListener('click', () => setPay('cash'));
+document.getElementById('ss-save').addEventListener('click', () => {
+  if (!sheetTarget) return;
+  const amt = parseFloat(document.getElementById('ss-amt').value);
+  if (isNaN(amt) || amt < 0){ document.getElementById('ss-amt').focus(); return; }
+  const [di, si] = sheetTarget;
+  SPEND[spendKey(DAYS[di].day, si)] = { amt, pay: curPay, memo: document.getElementById('ss-memo').value.trim() };
+  persistSpend(); refreshAfterSpend(di, si); closeSheet();
+});
+document.getElementById('ss-del').addEventListener('click', () => {
+  if (!sheetTarget) return;
+  const [di, si] = sheetTarget;
+  delete SPEND[spendKey(DAYS[di].day, si)];
+  persistSpend(); refreshAfterSpend(di, si); closeSheet();
+});
+document.getElementById('ss-close').addEventListener('click', closeSheet);
+
+/* --- 전체 지출 테이블 (테마별 + 일별) --- */
+function openExpenseModal(){
+  const cs = {}; CATS.forEach(c => cs[c] = { emin:0, emax:0, act:0 });
+  const dayRows = [];
+  let gEmin=0, gEmax=0, gAct=0;
+  DAYS.forEach(d => {
+    const t = EST[d.day] || {};
+    let emin=0, emax=0, act=0;
+    for (const k in t){
+      emin += t[k][0]; emax += t[k][1];
+      const c = cs[t[k][2]] || cs['기타'];
+      c.emin += t[k][0]; c.emax += t[k][1];
+    }
+    d.stops.forEach((s, k) => {
+      const sp = SPEND[spendKey(d.day, k)];
+      if (sp){
+        act += sp.amt;
+        const cat = (t[k] && t[k][2]) || '기타';
+        (cs[cat] || cs['기타']).act += sp.amt;
+      }
+    });
+    gEmin += emin; gEmax += emax; gAct += act;
+    if (emin || act) dayRows.push(`<tr><td>D${d.day} (${d.date})</td><td>${fmt$(Math.round(emin))}~${fmt$(Math.round(emax))}</td><td>${act ? fmt$(act) : '—'}</td></tr>`);
+  });
+  const catRows = CATS
+    .filter(c => cs[c].emin || cs[c].act)
+    .map(c => `<tr><td>${c}</td><td>${fmt$(Math.round(cs[c].emin))}~${fmt$(Math.round(cs[c].emax))}</td><td>${cs[c].act ? fmt$(cs[c].act) : '—'}</td></tr>`).join('');
+  document.getElementById('em-body').innerHTML = `
+    <h4>테마별</h4>
+    <table><tr><th>카테고리</th><th>예상</th><th>실제</th></tr>${catRows}
+    <tr class="em-total"><td>합계</td><td>${fmt$(Math.round(gEmin))}~${fmt$(Math.round(gEmax))}</td><td>${gAct ? fmt$(gAct) : '—'}</td></tr></table>
+    <h4>일별</h4>
+    <table><tr><th>날짜</th><th>예상</th><th>실제</th></tr>${dayRows.join('')}</table>`;
+  document.getElementById('expense-modal').style.display = 'flex';
+}
+document.getElementById('day-summary').addEventListener('click', openExpenseModal);
+document.getElementById('em-close').addEventListener('click', () => document.getElementById('expense-modal').style.display = 'none');
+document.getElementById('expense-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'expense-modal') e.target.style.display = 'none';
+});
+
+/* --- GPS 내 위치 --- */
+const gpsLayer = L.layerGroup().addTo(map);
+const gpsBtn = document.getElementById('gps-btn');
+let geoWatch = null, geoMarker = null, geoCircle = null, geoFirstFix = false;
+gpsBtn.addEventListener('click', () => {
+  if (geoWatch !== null){
+    navigator.geolocation.clearWatch(geoWatch);
+    geoWatch = null; geoMarker = null; geoCircle = null; geoFirstFix = false;
+    gpsLayer.clearLayers();
+    gpsBtn.classList.remove('on');
+    return;
+  }
+  if (!navigator.geolocation){ alert('이 브라우저에서는 위치 기능을 지원하지 않습니다.'); return; }
+  gpsBtn.classList.add('on');
+  geoWatch = navigator.geolocation.watchPosition(pos => {
+    const ll = [pos.coords.latitude, pos.coords.longitude];
+    if (!geoMarker){
+      geoMarker = L.marker(ll, { icon: L.divIcon({ className:'', html:'<div class="gps-dot"></div>', iconSize:[20,20], iconAnchor:[10,10] }) }).addTo(gpsLayer);
+      geoCircle = L.circle(ll, { radius: pos.coords.accuracy, color:'#4f8cff', weight:1, fillOpacity:0.08 }).addTo(gpsLayer);
+    } else {
+      geoMarker.setLatLng(ll);
+      geoCircle.setLatLng(ll).setRadius(pos.coords.accuracy);
+    }
+    if (!geoFirstFix){ geoFirstFix = true; map.setView(ll, Math.max(map.getZoom(), 15)); }
+  }, err => {
+    gpsBtn.classList.remove('on');
+    if (geoWatch !== null){ navigator.geolocation.clearWatch(geoWatch); geoWatch = null; }
+    alert('위치를 가져올 수 없습니다. 파일을 로컬로 직접 열면 iOS가 위치 권한을 막는 경우가 있습니다 — 그 경우에도 나머지 기능은 정상 동작합니다.');
+  }, { enableHighAccuracy:true, maximumAge:5000, timeout:15000 });
+});
+
+/* 데스크톱 편의: ←/→ 로 날짜 이동, ↑/↓ 로 스팟 이동 */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') selectDay(Math.min(DAYS.length-1, curDay+1));
+  else if (e.key === 'ArrowLeft') selectDay(Math.max(0, curDay-1));
+  else if (e.key === 'ArrowDown' && DAYS[curDay].stops.length) { e.preventDefault(); scrollToIndex(Math.min(DAYS[curDay].stops.length-1, currentIndex+1)); }
+  else if (e.key === 'ArrowUp' && DAYS[curDay].stops.length) { e.preventDefault(); scrollToIndex(Math.max(0, currentIndex-1)); }
+});
+
+/* 초기 선택: 마지막으로 보던 날, 없으면 데이터 있는 첫 날 */
+let initDay = 1;
+try {
+  const saved = parseInt(localStorage.getItem('nycLastDay'), 10);
+  if (!isNaN(saved) && saved >= 0 && saved < DAYS.length) initDay = saved;
+} catch(e){}
+selectDay(initDay);
+</script>
+</body>
+</html>
