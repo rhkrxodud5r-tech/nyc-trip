@@ -211,9 +211,14 @@
   .ic-sub { font-size:10.5px; color:var(--sub); margin-top:2px; }
   .ic-sep { height:1px; background:var(--line); margin:12px 0; }
   .ic-conv { display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .in-wrap { position:relative; flex:1; min-width:0; }
+  .in-pre {
+    position:absolute; left:11px; top:50%; transform:translateY(-50%);
+    color:var(--sub); font-size:13px; font-weight:700; pointer-events:none;
+  }
   .ic-conv input {
-    flex:1; min-width:0; background:#1d232e; border:1px solid #2c3442; color:#fff;
-    border-radius:10px; padding:8px 10px; font-size:13px; font-family:inherit;
+    width:100%; background:#1d232e; border:1px solid #2c3442; color:#fff;
+    border-radius:10px; padding:8px 10px 8px 26px; font-size:13px; font-family:inherit;
   }
   .ic-conv .ic-eq { color:var(--sub); flex:0 0 auto; }
   .ic-row { display:flex; justify-content:space-between; gap:10px; margin:3px 0; }
@@ -264,6 +269,8 @@
     flex:1; min-width:0; background:#1d232e; border:1px solid #2c3442; color:#fff;
     border-radius:10px; padding:10px 12px; font-size:14px; font-family:inherit;
   }
+  #ss-amt { width:100%; padding-left:28px; }
+  .ss-row .in-pre { font-size:14px; }
   .pay-btn { padding:10px 14px; border-radius:10px; background:#1d232e; color:#9aa3b2; border:1px solid #2c3442; font-size:13px; cursor:pointer; font-family:inherit; }
   .pay-btn.sel { background:#4f8cff; color:#fff; border-color:#4f8cff; }
   .pay-btn.grow { flex:1; }
@@ -338,7 +345,10 @@
 <div id="spend-sheet">
   <h3 id="ss-title"></h3>
   <div class="ss-row">
-    <input id="ss-amt" type="number" inputmode="decimal" step="0.01" placeholder="금액 ($, 2인 합계)">
+    <div class="in-wrap">
+      <span class="in-pre" id="ss-pre">$</span>
+      <input id="ss-amt" type="text" inputmode="decimal" placeholder="금액 (2인 합계)">
+    </div>
     <button class="pay-btn" id="cur-usd">$</button>
     <button class="pay-btn" id="cur-krw">₩</button>
   </div>
@@ -706,8 +716,18 @@ function loadSpend(){ try { return JSON.parse(localStorage.getItem('nycSpendV1')
 function persistSpend(){ try { localStorage.setItem('nycSpendV1', JSON.stringify(SPEND)); } catch(e){} }
 let SPEND = loadSpend();
 const spendKey = (dayNo, si) => 'd' + dayNo + 's' + si;
-const fmt$ = v => '$' + (Math.round(v*100)/100);
+const fmt$ = v => '$' + (Math.round(v*100)/100).toLocaleString('en-US', { maximumFractionDigits:2 });
 const fmtW = v => '₩' + Math.round(v).toLocaleString('ko-KR');
+/* 입력창 천단위 콤마 포맷/파싱 */
+function fmtNumStr(s, maxDec){
+  let v = String(s).replace(/[^0-9.]/g, '');
+  const parts = v.split('.');
+  let int = parts[0].replace(/^0+(?=\d)/, '');
+  int = int.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  if (parts.length > 1 && maxDec > 0) return int + '.' + parts.slice(1).join('').slice(0, maxDec);
+  return int;
+}
+function parseNum(s){ const n = parseFloat(String(s).replace(/,/g, '')); return isNaN(n) ? NaN : n; }
 const FALLBACK_RATE = 1380;
 function toUSD(amt, cur){ return cur === 'KRW' ? amt / ((FX.rate || FALLBACK_RATE)) : amt; }
 function spDisp(sp){
@@ -802,9 +822,9 @@ function renderIslandCard(){
     <div class="ic-big">${FX.rate ? '$1 = ₩' + FX.rate.toLocaleString('ko-KR', {maximumFractionDigits:1}) : '불러오지 못함'}</div>
     <div class="ic-sub">${FX.rate ? (FX.cached ? '오프라인 — 마지막 저장값' : '갱신: ' + String(FX.ts).slice(0,16)) : '기본값 ₩'+FALLBACK_RATE+'로 환산 중'}</div>
     <div class="ic-conv">
-      <input id="cv-usd" type="number" inputmode="decimal" placeholder="$ 달러">
+      <div class="in-wrap"><span class="in-pre">$</span><input id="cv-usd" type="text" inputmode="decimal" placeholder="달러"></div>
       <span class="ic-eq">=</span>
-      <input id="cv-krw" type="number" inputmode="decimal" placeholder="₩ 원화">
+      <div class="in-wrap"><span class="in-pre">₩</span><input id="cv-krw" type="text" inputmode="decimal" placeholder="원화"></div>
     </div>
     <div class="ic-sep"></div>
     <h4>${d.date}(${d.dow}) · D${d.day}</h4>
@@ -812,13 +832,23 @@ function renderIslandCard(){
     ${wxRows}`;
   const r = FX.rate || FALLBACK_RATE;
   const u = document.getElementById('cv-usd'), w = document.getElementById('cv-krw');
-  u.addEventListener('input', () => { w.value = u.value === '' ? '' : Math.round(parseFloat(u.value) * r); });
-  w.addEventListener('input', () => { u.value = w.value === '' ? '' : Math.round(parseFloat(w.value) / r * 100) / 100; });
+  u.addEventListener('input', () => {
+    u.value = fmtNumStr(u.value, 2);
+    const n = parseNum(u.value);
+    w.value = isNaN(n) ? '' : fmtNumStr(String(Math.round(n * r)), 0);
+  });
+  w.addEventListener('input', () => {
+    w.value = fmtNumStr(w.value, 0);
+    const n = parseNum(w.value);
+    u.value = isNaN(n) ? '' : fmtNumStr(String(Math.round(n / r * 100) / 100), 2);
+  });
 }
 document.getElementById('island').addEventListener('click', () => {
   if (islandCard.style.display === 'block'){ islandCard.style.display = 'none'; }
   else { renderIslandCard(); islandCard.style.display = 'block'; }
 });
+/* 지도 탭하면 아일랜드 카드 닫기 */
+map.on('click', () => { if (islandCard.style.display === 'block') islandCard.style.display = 'none'; });
 loadFx(); loadWx();
 
 /* --- 팝업 생성 (예상/실제 지출 + 딥링크 버튼 포함) --- */
@@ -867,7 +897,8 @@ function updateDaySummary(i){
   el.style.display = 'block';
   el.innerHTML =
     `<span class="ds-lbl">예상</span>${est ? fmt$(Math.round(est[0]))+(est[1]>est[0] ? '~'+fmt$(Math.round(est[1])) : '') : '—'}` +
-    `<span class="ds-lbl">실제</span>${fmt$(act)}<span class="ds-chev">›</span>`;
+    (act > 0 ? `<span class="ds-lbl">실제</span>${fmt$(Math.round(act*100)/100)}` : '') +
+    `<span class="ds-chev">›</span>`;
 }
 
 /* --- 지출 입력 시트 --- */
@@ -882,12 +913,14 @@ function setCur(c){
   curCur = c;
   document.getElementById('cur-usd').classList.toggle('sel', c==='USD');
   document.getElementById('cur-krw').classList.toggle('sel', c==='KRW');
-  document.getElementById('ss-amt').placeholder = c==='KRW' ? '금액 (₩, 2인 합계)' : '금액 ($, 2인 합계)';
+  document.getElementById('ss-pre').textContent = c==='KRW' ? '₩' : '$';
+  const amtEl = document.getElementById('ss-amt');
+  amtEl.value = fmtNumStr(amtEl.value, c==='KRW' ? 0 : 2);
   updateFxHint();
 }
 function updateFxHint(){
   const el = document.getElementById('ss-fxhint');
-  const v = parseFloat(document.getElementById('ss-amt').value);
+  const v = parseNum(document.getElementById('ss-amt').value);
   const r = FX.rate || FALLBACK_RATE;
   if (isNaN(v) || v <= 0){ el.textContent = ''; return; }
   el.textContent = curCur==='KRW'
@@ -898,7 +931,7 @@ function openSpend(di, si){
   sheetTarget = [di, si];
   const d = DAYS[di], sp = SPEND[spendKey(d.day, si)] || {};
   document.getElementById('ss-title').textContent = si + '. ' + d.stops[si].name;
-  document.getElementById('ss-amt').value = sp.amt != null ? sp.amt : '';
+  document.getElementById('ss-amt').value = sp.amt != null ? fmtNumStr(String(sp.amt), sp.cur==='KRW' ? 0 : 2) : '';
   document.getElementById('ss-memo').value = sp.memo || '';
   setPay(sp.pay || 'card');
   setCur(sp.cur || 'USD');
@@ -913,10 +946,13 @@ document.getElementById('pay-card').addEventListener('click', () => setPay('card
 document.getElementById('pay-cash').addEventListener('click', () => setPay('cash'));
 document.getElementById('cur-usd').addEventListener('click', () => setCur('USD'));
 document.getElementById('cur-krw').addEventListener('click', () => setCur('KRW'));
-document.getElementById('ss-amt').addEventListener('input', updateFxHint);
+document.getElementById('ss-amt').addEventListener('input', (e) => {
+  e.target.value = fmtNumStr(e.target.value, curCur==='KRW' ? 0 : 2);
+  updateFxHint();
+});
 document.getElementById('ss-save').addEventListener('click', () => {
   if (!sheetTarget) return;
-  const amt = parseFloat(document.getElementById('ss-amt').value);
+  const amt = parseNum(document.getElementById('ss-amt').value);
   if (isNaN(amt) || amt < 0){ document.getElementById('ss-amt').focus(); return; }
   const [di, si] = sheetTarget;
   SPEND[spendKey(DAYS[di].day, si)] = { amt, cur: curCur, pay: curPay, memo: document.getElementById('ss-memo').value.trim() };
