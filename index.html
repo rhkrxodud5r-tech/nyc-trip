@@ -14,7 +14,7 @@
     --line:rgba(255,255,255,.07); --txt:#f2f5f9; --sub:#98a2b3;
     --acc:#4f8cff; --acc-grad:linear-gradient(135deg,#5b95ff,#3f7bf0);
     --shadow:0 8px 28px rgba(0,0,0,.42);
-    --blur:blur(18px) saturate(1.5);
+    --blur:blur(12px) saturate(1.3); /* 블러 강도 완화 — iPad GPU 부하 절감 */
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -22,6 +22,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:var(--bg); overscroll-behavior:none;
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    touch-action:manipulation; /* 더블탭 대기 제거 — 버튼 반응 즉시화 */
   }
   button { font-family:inherit; }
 
@@ -581,7 +582,11 @@ const DAYS = [
    이하 렌더링 로직 — 데이터만 고치면 아래는 손댈 필요 없음
    ============================================================ */
 const ROW_H = 44;
-const map = L.map('map', { zoomControl:false }).setView([40.7128,-74.0060], 12);
+const map = L.map('map', {
+  zoomControl:false,
+  preferCanvas:true,                       /* 경로를 Canvas로 렌더 — 줌 중 SVG 경로 왜곡(꼬임) 제거 */
+  renderer: L.canvas({ padding:0.5 }),     /* 화면 밖 여유분까지 미리 그려 팬 중 끊김 방지 */
+}).setView([40.7128,-74.0060], 12);
 L.control.zoom({position:'bottomright'}).addTo(map);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   maxZoom: 20, subdomains:'abcd',
@@ -655,7 +660,7 @@ function selectDay(i){
       iconSize:[26,26], iconAnchor:[13,13]
     });
     const m = L.marker(s.coord, { icon }).addTo(dayLayer);
-    m.bindPopup(() => buildPopup(i, idx), { maxWidth:270 });
+    m.bindPopup(() => buildPopup(i, idx), { maxWidth:270, autoPan:false });
     m.on('click', () => focusStop(idx, 'marker'));
     markers.push(m);
   });
@@ -709,13 +714,18 @@ function setSelMarker(i){
     m.setZIndexOffset(k===i ? 1000 : 0);
   });
 }
+/* 팝업이 헤더에 가리지 않게 마커보다 110px 위 지점으로 이동 (autoPan 대체 — 이중 애니메이션 제거) */
+function flyToStop(coord){
+  const p = map.project(L.latLng(coord), 16);
+  map.flyTo(map.unproject([p.x, p.y - 110], 16), 16, { duration:0.45 });
+}
 function focusStop(i, source){
   currentIndex = i;
   updateActiveRow(i);
   updatePickerLabel(i);
   setSelMarker(i);
   if (source !== 'picker') scrollToIndex(i);
-  if (source !== 'marker') map.flyTo(DAYS[curDay].stops[i].coord, 16, { duration:0.5 });
+  if (source !== 'marker') flyToStop(DAYS[curDay].stops[i].coord);
   markers[i].openPopup();
 }
 
@@ -731,7 +741,7 @@ scrollEl.addEventListener('scroll', () => {
       currentIndex = idx;
       updatePickerLabel(idx);
       setSelMarker(idx);
-      map.flyTo(DAYS[curDay].stops[idx].coord, 16, { duration:0.5 });
+      flyToStop(DAYS[curDay].stops[idx].coord);
       markers[idx].openPopup();
     }
   }, 130);
@@ -971,7 +981,7 @@ function renderCrowd(){
     c.bindPopup(`
       <div class="popup-title">${a.name}</div>
       <div class="popup-row"><span class="cr-dot" style="background:${CR_COLORS[lv]}"></span><b>${CR_NAMES[lv]}</b> — 뉴욕 현재 ${t.h}시 · ${t.we ? '주말' : '평일'} 패턴</div>
-      ${a.recs ? `<div class="popup-note">${a.recs}</div>` : ''}`, { maxWidth:260 });
+      ${a.recs ? `<div class="popup-note">${a.recs}</div>` : ''}`, { maxWidth:260, autoPan:false });
   });
 }
 let toastTimer = null;
