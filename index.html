@@ -187,6 +187,38 @@
   #day-summary .ds-lbl:first-child { margin-left:0; }
   #day-summary .ds-chev { color:var(--sub); margin-left:5px; font-weight:400; }
 
+  /* ---- 환율·날씨 아일랜드 (좌상단) ---- */
+  #island {
+    position:fixed; top:calc(96px + env(safe-area-inset-top, 0px)); left:10px; z-index:999; cursor:pointer;
+    background:rgba(10,12,16,.88); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    color:#fff; font-size:11.5px; font-weight:700;
+    padding:7px 12px; border-radius:999px; box-shadow:var(--shadow); border:1px solid var(--line);
+    display:flex; align-items:center; gap:8px; transition:transform .15s;
+  }
+  #island:active { transform:scale(.96); }
+  #island .isl-div { width:1px; height:11px; background:rgba(255,255,255,.18); }
+  #island .isl-dim { color:var(--sub); font-weight:500; }
+  #island-card {
+    position:fixed; top:calc(138px + env(safe-area-inset-top, 0px)); left:10px; z-index:1001;
+    width:min(88vw, 330px); display:none;
+    background:var(--panel-solid); color:#fff; border-radius:18px; padding:14px;
+    border:1px solid var(--line); box-shadow:var(--shadow);
+    animation:cardIn .25s cubic-bezier(.32,.72,.25,1);
+    font-size:12.5px; line-height:1.55;
+  }
+  #island-card h4 { margin:0 0 4px; font-size:11px; color:var(--sub); font-weight:600; letter-spacing:.02em; }
+  .ic-big { font-size:17px; font-weight:800; letter-spacing:-.01em; }
+  .ic-sub { font-size:10.5px; color:var(--sub); margin-top:2px; }
+  .ic-sep { height:1px; background:var(--line); margin:12px 0; }
+  .ic-conv { display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .ic-conv input {
+    flex:1; min-width:0; background:#1d232e; border:1px solid #2c3442; color:#fff;
+    border-radius:10px; padding:8px 10px; font-size:13px; font-family:inherit;
+  }
+  .ic-conv .ic-eq { color:var(--sub); flex:0 0 auto; }
+  .ic-row { display:flex; justify-content:space-between; gap:10px; margin:3px 0; }
+  .ic-row .k { color:var(--sub); }
+
   /* ---- 팝업 버튼/태그 ---- */
   .pbtn-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:9px; }
   .pbtn {
@@ -234,6 +266,9 @@
   }
   .pay-btn { padding:10px 14px; border-radius:10px; background:#1d232e; color:#9aa3b2; border:1px solid #2c3442; font-size:13px; cursor:pointer; font-family:inherit; }
   .pay-btn.sel { background:#4f8cff; color:#fff; border-color:#4f8cff; }
+  .pay-btn.grow { flex:1; }
+  .ss-note { font-size:10.5px; color:var(--sub); margin:-4px 0 10px; }
+  .em-note { font-size:10.5px; color:var(--sub); margin-top:10px; }
   .ss-actions { display:flex; gap:8px; }
   .ss-actions button { flex:1; padding:11px; border-radius:10px; border:none; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; }
   #ss-save { background:#4f8cff; color:#fff; }
@@ -290,6 +325,8 @@
 <div id="placeholder"></div>
 
 <div id="day-summary"></div>
+<div id="island"><span id="isl-fx" class="isl-dim">₩ —</span><span class="isl-div"></span><span id="isl-wx" class="isl-dim">—°</span></div>
+<div id="island-card"></div>
 <button id="gps-btn" title="내 위치 표시" aria-label="내 위치 표시">
   <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
     <circle cx="12" cy="12" r="3.2"/>
@@ -302,8 +339,13 @@
   <h3 id="ss-title"></h3>
   <div class="ss-row">
     <input id="ss-amt" type="number" inputmode="decimal" step="0.01" placeholder="금액 ($, 2인 합계)">
-    <button class="pay-btn" id="pay-card">카드</button>
-    <button class="pay-btn" id="pay-cash">현금</button>
+    <button class="pay-btn" id="cur-usd">$</button>
+    <button class="pay-btn" id="cur-krw">₩</button>
+  </div>
+  <div class="ss-note" id="ss-fxhint"></div>
+  <div class="ss-row">
+    <button class="pay-btn grow" id="pay-card">카드</button>
+    <button class="pay-btn grow" id="pay-cash">현금</button>
   </div>
   <div class="ss-row"><input id="ss-memo" type="text" placeholder="먹은 메뉴 / 메모 (선택)"></div>
   <div class="ss-actions">
@@ -550,6 +592,7 @@ function selectDay(i){
   scrollEl.innerHTML = '';
   buildLegend(day);
   updateDaySummary(i);
+  if (typeof islandCard !== 'undefined' && islandCard.style.display === 'block') renderIslandCard();
 
   if (!day.stops.length){
     phEl.style.display = 'block';
@@ -664,6 +707,119 @@ function persistSpend(){ try { localStorage.setItem('nycSpendV1', JSON.stringify
 let SPEND = loadSpend();
 const spendKey = (dayNo, si) => 'd' + dayNo + 's' + si;
 const fmt$ = v => '$' + (Math.round(v*100)/100);
+const fmtW = v => '₩' + Math.round(v).toLocaleString('ko-KR');
+const FALLBACK_RATE = 1380;
+function toUSD(amt, cur){ return cur === 'KRW' ? amt / ((FX.rate || FALLBACK_RATE)) : amt; }
+function spDisp(sp){
+  if (sp.cur === 'KRW') return `${fmtW(sp.amt)} (≈${fmt$(Math.round(toUSD(sp.amt,'KRW')*10)/10)})`;
+  return fmt$(sp.amt);
+}
+
+/* ============================================================
+   환율 + 날씨 + 일출·일몰 (아일랜드)
+   ============================================================ */
+let FX = { rate:null, ts:null, cached:false };
+let WX = null;
+
+async function loadFx(){
+  try {
+    const j = await (await fetch('https://open.er-api.com/v6/latest/USD')).json();
+    if (j && j.rates && j.rates.KRW){ FX = { rate:j.rates.KRW, ts:j.time_last_update_utc, cached:false }; }
+  } catch(e){}
+  if (!FX.rate){
+    try {
+      const j = await (await fetch('https://api.frankfurter.app/latest?from=USD&to=KRW')).json();
+      if (j && j.rates && j.rates.KRW){ FX = { rate:j.rates.KRW, ts:j.date, cached:false }; }
+    } catch(e){}
+  }
+  if (FX.rate){ try { localStorage.setItem('nycFxV1', JSON.stringify(FX)); } catch(e){} }
+  else {
+    try { const c = JSON.parse(localStorage.getItem('nycFxV1')); if (c && c.rate){ FX = c; FX.cached = true; } } catch(e){}
+  }
+  updateIsland();
+}
+async function loadWx(){
+  try {
+    WX = await (await fetch('https://api.open-meteo.com/v1/forecast?latitude=40.7128&longitude=-74.006&current=temperature_2m,weather_code&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=America%2FNew_York&forecast_days=16')).json();
+  } catch(e){}
+  updateIsland();
+}
+const WMO = { 0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌦️',61:'🌧️',63:'🌧️',65:'🌧️',66:'🌧️',67:'🌧️',71:'🌨️',73:'🌨️',75:'🌨️',77:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',85:'🌨️',86:'🌨️',95:'⛈️',96:'⛈️',99:'⛈️' };
+const wmoIcon = c => WMO[c] || '☁️';
+
+/* 일출·일몰 천문 계산 (뉴욕, 10월 = EDT/UTC-4) — API 없이 아무 날짜나 계산 */
+function sunTime(y, mo, dy, isRise){
+  const rad = Math.PI/180, lat = 40.7128, lng = -74.0060, tzOff = -4, zenith = 90.833;
+  const N1 = Math.floor(275*mo/9), N2 = Math.floor((mo+9)/12);
+  const N3 = 1 + Math.floor((y - 4*Math.floor(y/4) + 2)/3);
+  const N = N1 - (N2*N3) + dy - 30;
+  const lngHour = lng/15;
+  const t = isRise ? N + ((6 - lngHour)/24) : N + ((18 - lngHour)/24);
+  const M = (0.9856*t) - 3.289;
+  let L = M + (1.916*Math.sin(M*rad)) + (0.020*Math.sin(2*M*rad)) + 282.634;
+  L = ((L%360)+360)%360;
+  let RA = Math.atan(0.91764*Math.tan(L*rad))/rad;
+  RA = ((RA%360)+360)%360;
+  RA = (RA + (Math.floor(L/90)*90 - Math.floor(RA/90)*90))/15;
+  const sinDec = 0.39782*Math.sin(L*rad), cosDec = Math.cos(Math.asin(sinDec));
+  const cosH = (Math.cos(zenith*rad) - (sinDec*Math.sin(lat*rad))) / (cosDec*Math.cos(lat*rad));
+  if (cosH > 1 || cosH < -1) return '—';
+  let H = isRise ? 360 - Math.acos(cosH)/rad : Math.acos(cosH)/rad;
+  H /= 15;
+  const T = H + RA - (0.06571*t) - 6.622;
+  let lt = ((T - lngHour + tzOff) % 24 + 24) % 24;
+  const hh = Math.floor(lt), mm = Math.round((lt-hh)*60);
+  return (hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;
+}
+function tripDate(d){ return new Date(2026, 9, 5 + d.day); } // Day1=10/6
+function ymd(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+
+function updateIsland(){
+  document.getElementById('isl-fx').outerHTML = `<span id="isl-fx"${FX.rate?'':' class="isl-dim"'}>${FX.rate ? '₩'+Math.round(FX.rate).toLocaleString('ko-KR') : '₩ —'}</span>`;
+  const cur = WX && WX.current;
+  document.getElementById('isl-wx').outerHTML = `<span id="isl-wx"${cur?'':' class="isl-dim"'}>${cur ? Math.round(cur.temperature_2m)+'° '+wmoIcon(cur.weather_code) : '—°'}</span>`;
+  if (islandCard.style.display === 'block') renderIslandCard();
+}
+const islandCard = document.getElementById('island-card');
+function renderIslandCard(){
+  const d = DAYS[curDay];
+  const dt = tripDate(d);
+  const rise = sunTime(2026, 10, 5 + d.day, true), set = sunTime(2026, 10, 5 + d.day, false);
+  let wxRows = '';
+  if (WX && WX.daily){
+    const i = WX.daily.time.indexOf(ymd(dt));
+    if (i >= 0){
+      wxRows = `<div class="ic-row"><span class="k">D${d.day} 예보</span><span>${wmoIcon(WX.daily.weather_code[i])} 최고 ${Math.round(WX.daily.temperature_2m_max[i])}° / 최저 ${Math.round(WX.daily.temperature_2m_min[i])}° · 강수 ${WX.daily.precipitation_probability_max[i]}%</span></div>`;
+    } else {
+      wxRows = `<div class="ic-row"><span class="k">D${d.day} 예보</span><span class="k">14일 전부터 제공</span></div>`;
+    }
+    if (WX.current) wxRows += `<div class="ic-row"><span class="k">지금 뉴욕</span><span>${wmoIcon(WX.current.weather_code)} ${Math.round(WX.current.temperature_2m)}°</span></div>`;
+  } else {
+    wxRows = `<div class="ic-row"><span class="k">날씨</span><span class="k">불러오지 못함 — 새로고침 시 재시도</span></div>`;
+  }
+  islandCard.innerHTML = `
+    <h4>환율 (USD → KRW)</h4>
+    <div class="ic-big">${FX.rate ? '$1 = ₩' + FX.rate.toLocaleString('ko-KR', {maximumFractionDigits:1}) : '불러오지 못함'}</div>
+    <div class="ic-sub">${FX.rate ? (FX.cached ? '오프라인 — 마지막 저장값' : '갱신: ' + String(FX.ts).slice(0,16)) : '기본값 ₩'+FALLBACK_RATE+'로 환산 중'}</div>
+    <div class="ic-conv">
+      <input id="cv-usd" type="number" inputmode="decimal" placeholder="$ 달러">
+      <span class="ic-eq">=</span>
+      <input id="cv-krw" type="number" inputmode="decimal" placeholder="₩ 원화">
+    </div>
+    <div class="ic-sep"></div>
+    <h4>${d.date}(${d.dow}) · D${d.day}</h4>
+    <div class="ic-row"><span class="k">일출 / 일몰</span><span>🌅 ${rise} · 🌇 ${set}</span></div>
+    ${wxRows}`;
+  const r = FX.rate || FALLBACK_RATE;
+  const u = document.getElementById('cv-usd'), w = document.getElementById('cv-krw');
+  u.addEventListener('input', () => { w.value = u.value === '' ? '' : Math.round(parseFloat(u.value) * r); });
+  w.addEventListener('input', () => { u.value = w.value === '' ? '' : Math.round(parseFloat(w.value) / r * 100) / 100; });
+}
+document.getElementById('island').addEventListener('click', () => {
+  if (islandCard.style.display === 'block'){ islandCard.style.display = 'none'; }
+  else { renderIslandCard(); islandCard.style.display = 'block'; }
+});
+loadFx(); loadWx();
 
 /* --- 팝업 생성 (예상/실제 지출 + 딥링크 버튼 포함) --- */
 function buildPopup(di, si){
@@ -681,7 +837,7 @@ function buildPopup(di, si){
     ${s.menu && s.menu!=='-' ? `<div class="popup-row"><b>메뉴</b> ${s.menu}</div>` : ''}
     ${s.price && s.price!=='-' ? `<div class="popup-row"><b>가격</b> ${s.price}</div>` : ''}
     ${est ? `<div class="popup-row"><b>예상</b> ${fmt$(est[0])}${est[1]>est[0] ? '~'+fmt$(est[1]) : ''}<span class="cat-tag">${est[2]}</span></div>` : ''}
-    ${sp ? `<div class="popup-row spent"><b>실제</b> ${fmt$(sp.amt)} · ${sp.pay==='cash'?'현금':'카드'}${sp.memo ? ' · '+sp.memo : ''}</div>` : ''}
+    ${sp ? `<div class="popup-row spent"><b>실제</b> ${spDisp(sp)} · ${sp.pay==='cash'?'현금':'카드'}${sp.memo ? ' · '+sp.memo : ''}</div>` : ''}
     <div class="popup-note">${s.note}</div>
     <div class="pbtn-row">
       <a class="pbtn" href="${gmap}" target="_blank">길찾기</a>
@@ -701,7 +857,7 @@ function estSumDay(d){
 }
 function actSumDay(d){
   let a = 0;
-  d.stops.forEach((s, k) => { const sp = SPEND[spendKey(d.day, k)]; if (sp) a += sp.amt; });
+  d.stops.forEach((s, k) => { const sp = SPEND[spendKey(d.day, k)]; if (sp) a += toUSD(sp.amt, sp.cur); });
   return a;
 }
 function updateDaySummary(i){
@@ -715,12 +871,28 @@ function updateDaySummary(i){
 }
 
 /* --- 지출 입력 시트 --- */
-let sheetTarget = null, curPay = 'card';
+let sheetTarget = null, curPay = 'card', curCur = 'USD';
 const sheetEl = document.getElementById('spend-sheet');
 function setPay(p){
   curPay = p;
   document.getElementById('pay-card').classList.toggle('sel', p==='card');
   document.getElementById('pay-cash').classList.toggle('sel', p==='cash');
+}
+function setCur(c){
+  curCur = c;
+  document.getElementById('cur-usd').classList.toggle('sel', c==='USD');
+  document.getElementById('cur-krw').classList.toggle('sel', c==='KRW');
+  document.getElementById('ss-amt').placeholder = c==='KRW' ? '금액 (₩, 2인 합계)' : '금액 ($, 2인 합계)';
+  updateFxHint();
+}
+function updateFxHint(){
+  const el = document.getElementById('ss-fxhint');
+  const v = parseFloat(document.getElementById('ss-amt').value);
+  const r = FX.rate || FALLBACK_RATE;
+  if (isNaN(v) || v <= 0){ el.textContent = ''; return; }
+  el.textContent = curCur==='KRW'
+    ? `≈ ${fmt$(Math.round(v/r*100)/100)} ($1 = ₩${Math.round(r).toLocaleString('ko-KR')})`
+    : `≈ ${fmtW(v*r)} ($1 = ₩${Math.round(r).toLocaleString('ko-KR')})`;
 }
 function openSpend(di, si){
   sheetTarget = [di, si];
@@ -729,6 +901,7 @@ function openSpend(di, si){
   document.getElementById('ss-amt').value = sp.amt != null ? sp.amt : '';
   document.getElementById('ss-memo').value = sp.memo || '';
   setPay(sp.pay || 'card');
+  setCur(sp.cur || 'USD');
   sheetEl.classList.add('open');
 }
 function closeSheet(){ sheetEl.classList.remove('open'); sheetTarget = null; }
@@ -738,12 +911,15 @@ function refreshAfterSpend(di, si){
 }
 document.getElementById('pay-card').addEventListener('click', () => setPay('card'));
 document.getElementById('pay-cash').addEventListener('click', () => setPay('cash'));
+document.getElementById('cur-usd').addEventListener('click', () => setCur('USD'));
+document.getElementById('cur-krw').addEventListener('click', () => setCur('KRW'));
+document.getElementById('ss-amt').addEventListener('input', updateFxHint);
 document.getElementById('ss-save').addEventListener('click', () => {
   if (!sheetTarget) return;
   const amt = parseFloat(document.getElementById('ss-amt').value);
   if (isNaN(amt) || amt < 0){ document.getElementById('ss-amt').focus(); return; }
   const [di, si] = sheetTarget;
-  SPEND[spendKey(DAYS[di].day, si)] = { amt, pay: curPay, memo: document.getElementById('ss-memo').value.trim() };
+  SPEND[spendKey(DAYS[di].day, si)] = { amt, cur: curCur, pay: curPay, memo: document.getElementById('ss-memo').value.trim() };
   persistSpend(); refreshAfterSpend(di, si); closeSheet();
 });
 document.getElementById('ss-del').addEventListener('click', () => {
@@ -770,9 +946,10 @@ function openExpenseModal(){
     d.stops.forEach((s, k) => {
       const sp = SPEND[spendKey(d.day, k)];
       if (sp){
-        act += sp.amt;
+        const usd = toUSD(sp.amt, sp.cur);
+        act += usd;
         const cat = (t[k] && t[k][2]) || '기타';
-        (cs[cat] || cs['기타']).act += sp.amt;
+        (cs[cat] || cs['기타']).act += usd;
       }
     });
     gEmin += emin; gEmax += emax; gAct += act;
@@ -786,7 +963,8 @@ function openExpenseModal(){
     <table><tr><th>카테고리</th><th>예상</th><th>실제</th></tr>${catRows}
     <tr class="em-total"><td>합계</td><td>${fmt$(Math.round(gEmin))}~${fmt$(Math.round(gEmax))}</td><td>${gAct ? fmt$(gAct) : '—'}</td></tr></table>
     <h4>일별</h4>
-    <table><tr><th>날짜</th><th>예상</th><th>실제</th></tr>${dayRows.join('')}</table>`;
+    <table><tr><th>날짜</th><th>예상</th><th>실제</th></tr>${dayRows.join('')}</table>
+    <div class="em-note">실제 지출 합계는 USD 기준 · ₩ 입력분은 $1 = ₩${Math.round(FX.rate || FALLBACK_RATE).toLocaleString('ko-KR')}로 환산${gAct ? ' (전체 실제 ≈ '+fmtW(gAct*(FX.rate||FALLBACK_RATE))+')' : ''}</div>`;
   document.getElementById('expense-modal').style.display = 'flex';
 }
 document.getElementById('day-summary').addEventListener('click', openExpenseModal);
