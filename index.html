@@ -249,6 +249,17 @@
   #gps-btn.on { background:var(--acc-grad); border-color:transparent; }
   #gps-btn.on svg { stroke:#fff; }
   .gps-dot { width:14px; height:14px; border-radius:50%; background:#4f8cff; border:3px solid #fff; box-shadow:0 0 10px rgba(79,140,255,.9); }
+  #crowd-btn {
+    position:fixed; left:14px; bottom:calc(70px + env(safe-area-inset-bottom)); z-index:1000;
+    width:46px; height:46px; border-radius:50%; border:1px solid var(--line); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    color:#fff; box-shadow:var(--shadow); transition:background .2s, transform .15s;
+  }
+  #crowd-btn:active { transform:scale(.94); }
+  #crowd-btn svg { width:20px; height:20px; stroke:#e6ebf2; fill:none; }
+  #crowd-btn.on { background:linear-gradient(135deg,#f08c3a,#d0512d); border-color:transparent; }
+  .cr-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:baseline; }
 
   /* ---- 지출 입력 시트 ---- */
   #spend-sheet {
@@ -334,6 +345,14 @@
 <div id="day-summary"></div>
 <div id="island"><span id="isl-fx" class="isl-dim">₩ —</span><span class="isl-div"></span><span id="isl-wx" class="isl-dim">—°</span></div>
 <div id="island-card"></div>
+<button id="crowd-btn" title="혼잡도 표시" aria-label="혼잡도 표시">
+  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+</button>
 <button id="gps-btn" title="내 위치 표시" aria-label="내 위치 표시">
   <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
     <circle cx="12" cy="12" r="3.2"/>
@@ -851,6 +870,77 @@ document.getElementById('island').addEventListener('click', () => {
 map.on('click', () => { if (islandCard.style.display === 'block') islandCard.style.display = 'none'; });
 loadFx(); loadWx();
 
+/* ============================================================
+   혼잡도 (패턴 기반 — 구글 방문 통계 패턴을 사전 조사해 내장)
+   - CROWD[day번호][stop인덱스] = [방문 예정 시간대 레벨, '팁']
+   - AREAS bands = [시작h, 끝h, 평일레벨, 주말레벨], 그 외 시간 = 1(한산)
+   - 레벨: 1 한산 · 2 보통 · 3 붐빔 · 4 매우 붐빔
+   ============================================================ */
+const CR_NAMES = ['','한산','보통','붐빔','매우 붐빔'];
+const CR_COLORS = ['','#2fa84f','#d9a514','#e07a1f','#d0312d'];
+const CROWD = {
+  1: { 0:[2,'심야 도착 편이라 입국심사 대기는 낮보다 짧은 편'] },
+  2: { 3:[2,'평일 오전이라 무난 — 주말 10~16시가 최악'],
+       6:[3,'아침 피크 시간대. 줄 서지만 회전 빠름'],
+       7:[2,'평일 8~9시 출근 피크만 피하면 여유'],
+       10:[2,'12시 넘으면 매우 붐빔 — 11:54 도착이 마지노선'],
+       11:[3,'낮 기준. 저녁엔 한 단계 더 붐빔'],
+       13:[4,'석양 슬롯은 최고 인기 — 시간지정 티켓이라 입장은 보장'],
+       14:[4,'저녁 줄 40~100명 — 앱 픽업 주문으로 스킵'] },
+  3: { 3:[2,'출근 직후라 무난'],
+       5:[3,'낮엔 페리 매표 줄과 겹침 — 황소상 사진 대기 5~10분'],
+       6:[2,'런치 피크(12:30~) 직전 입장 설계'],
+       7:[3,'메모리얼 풀 주변 단체관광 몰리는 시간대'],
+       10:[3,'17시 이른 저녁으로 웨이팅 회피 설계'],
+       11:[2,'집결 15분 전 도착이면 충분'] },
+};
+const AREAS = [
+  { name:'Times Square', coord:[40.7580,-73.9855], r:350, bands:[[8,10,2,2],[10,17,3,3],[17,23,4,4],[23,25,2,2]] },
+  { name:'Rockefeller · 5th Ave', coord:[40.7587,-73.9787], r:350, bands:[[10,19,3,4],[19,22,3,3]] },
+  { name:'Grand Central', coord:[40.7527,-73.9772], r:250, bands:[[8,10,4,2],[10,17,2,2],[17,19,4,2]] },
+  { name:'브루클린 브릿지', coord:[40.7061,-73.9969], r:450, bands:[[10,17,3,4],[17,19,2,3]] },
+  { name:'DUMBO', coord:[40.7033,-73.9894], r:300, bands:[[11,18,2,4]] },
+  { name:'SoHo', coord:[40.7233,-74.0030], r:400, bands:[[12,18,3,4]] },
+  { name:'Chinatown · Little Italy', coord:[40.7170,-73.9986], r:350, bands:[[11,15,3,4],[15,20,2,3]] },
+  { name:'WTC · Oculus · 9/11', coord:[40.7115,-74.0125], r:300, bands:[[10,17,3,3]] },
+  { name:'Battery Park (페리)', coord:[40.7033,-74.0170], r:300, bands:[[9,15,3,4],[15,18,2,3]] },
+  { name:'Central Park 남단', coord:[40.7680,-73.9800], r:450, bands:[[11,17,3,4]] },
+  { name:"Herald Sq · Macy's", coord:[40.7506,-73.9876], r:250, bands:[[12,19,3,4]] },
+  { name:'Bryant Park', coord:[40.7536,-73.9832], r:220, bands:[[12,14,3,3],[14,18,2,3]] },
+  { name:'High Line · Chelsea Mkt', coord:[40.7424,-74.0060], r:400, bands:[[11,17,3,4]] },
+  { name:'Williamsburg (Bedford)', coord:[40.7170,-73.9569], r:400, bands:[[12,19,2,4],[19,23,3,3]] },
+];
+function nyNow(){
+  const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour:'numeric', hourCycle:'h23', weekday:'short' }).formatToParts(new Date());
+  const h = parseInt(p.find(x => x.type==='hour').value, 10);
+  const wd = p.find(x => x.type==='weekday').value;
+  return { h, we: wd==='Sat' || wd==='Sun' };
+}
+function areaLevel(a, h, we){
+  for (const b of a.bands){ if (h >= b[0] && h < b[1]) return we ? b[3] : b[2]; }
+  return 1;
+}
+const crowdLayer = L.layerGroup();
+let crowdOn = false;
+function renderCrowd(){
+  crowdLayer.clearLayers();
+  const t = nyNow();
+  AREAS.forEach(a => {
+    const lv = areaLevel(a, t.h, t.we);
+    const c = L.circle(a.coord, { radius:a.r, color:CR_COLORS[lv], weight:1.5, fillColor:CR_COLORS[lv], fillOpacity:0.18 }).addTo(crowdLayer);
+    c.bindPopup(`
+      <div class="popup-title">${a.name}</div>
+      <div class="popup-row"><span class="cr-dot" style="background:${CR_COLORS[lv]}"></span><b>${CR_NAMES[lv]}</b> — 뉴욕 현재 ${t.h}시 · ${t.we ? '주말' : '평일'} 패턴</div>
+      <div class="popup-note">구글 방문 통계 시간대 패턴 기반(실측 아님). 초록=한산 · 노랑=보통 · 주황=붐빔 · 빨강=매우 붐빔</div>`, { maxWidth:250 });
+  });
+}
+document.getElementById('crowd-btn').addEventListener('click', function(){
+  crowdOn = !crowdOn;
+  this.classList.toggle('on', crowdOn);
+  if (crowdOn){ renderCrowd(); crowdLayer.addTo(map); }
+  else { map.removeLayer(crowdLayer); }
+});
+
 /* --- 팝업 생성 (예상/실제 지출 + 딥링크 버튼 포함) --- */
 function buildPopup(di, si){
   const d = DAYS[di], s = d.stops[si];
@@ -868,6 +958,7 @@ function buildPopup(di, si){
     ${s.price && s.price!=='-' ? `<div class="popup-row"><b>가격</b> ${s.price}</div>` : ''}
     ${est ? `<div class="popup-row"><b>예상</b> ${fmt$(est[0])}${est[1]>est[0] ? '~'+fmt$(est[1]) : ''}<span class="cat-tag">${est[2]}</span></div>` : ''}
     ${sp ? `<div class="popup-row spent"><b>실제</b> ${spDisp(sp)} · ${sp.pay==='cash'?'현금':'카드'}${sp.memo ? ' · '+sp.memo : ''}</div>` : ''}
+    ${(CROWD[d.day]||{})[si] ? `<div class="popup-row"><b>혼잡</b> <span class="cr-dot" style="background:${CR_COLORS[CROWD[d.day][si][0]]}"></span>${CR_NAMES[CROWD[d.day][si][0]]}${CROWD[d.day][si][1] ? ' — '+CROWD[d.day][si][1] : ''}</div>` : ''}
     <div class="popup-note">${s.note}</div>
     <div class="pbtn-row">
       <a class="pbtn" href="${gmap}" target="_blank">길찾기</a>
