@@ -763,20 +763,26 @@ let WX = null;
 async function loadFx(){
   try {
     const j = await (await fetch('https://open.er-api.com/v6/latest/USD')).json();
-    if (j && j.rates && j.rates.KRW){ FX = { rate:j.rates.KRW, ts:j.time_last_update_utc, cached:false }; }
+    if (j && j.rates && j.rates.KRW){ FX = { rate:j.rates.KRW, ts:j.time_last_update_utc, cached:false, fetchedAt:Date.now() }; }
   } catch(e){}
   if (!FX.rate){
     try {
       const j = await (await fetch('https://api.frankfurter.app/latest?from=USD&to=KRW')).json();
-      if (j && j.rates && j.rates.KRW){ FX = { rate:j.rates.KRW, ts:j.date, cached:false }; }
+      if (j && j.rates && j.rates.KRW){ FX = { rate:j.rates.KRW, ts:j.date, cached:false, fetchedAt:Date.now() }; }
     } catch(e){}
   }
-  if (FX.rate){ try { localStorage.setItem('nycFxV1', JSON.stringify(FX)); } catch(e){} }
-  else {
+  if (FX.rate && !FX.cached){ try { localStorage.setItem('nycFxV1', JSON.stringify(FX)); } catch(e){} }
+  else if (!FX.rate){
     try { const c = JSON.parse(localStorage.getItem('nycFxV1')); if (c && c.rate){ FX = c; FX.cached = true; } } catch(e){}
   }
   updateIsland();
 }
+/* 홈 화면 앱을 백그라운드에서 다시 열 때: 데이터가 6시간 이상 오래됐으면 자동 재조회 */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  const stale = !FX.fetchedAt || (Date.now() - FX.fetchedAt) > 6*3600*1000;
+  if (stale){ loadFx(); loadWx(); }
+});
 async function loadWx(){
   try {
     WX = await (await fetch('https://api.open-meteo.com/v1/forecast?latitude=40.7128&longitude=-74.006&current=temperature_2m,weather_code&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=America%2FNew_York&forecast_days=16')).json();
