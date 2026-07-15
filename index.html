@@ -481,7 +481,7 @@ const DAYS = [
       note:'MoMA는 관람시간 길어서 오늘 제외, 다른 날 배치 예정' },
     { type:'attraction', name:'Top of the Rock', coord:[40.7587,-73.9787],
       time:'17:00~19:00 입장', stay:'2시간', menu:'전망대(석양 슬롯)', price:'$52/인 = $104 (2인, 확정)',
-      resv:{ at:'2026-10-07 17:00', dur:120, label:'확정 티켓 (예매처 확정 시 링크 교체)', url:'https://www.rockefellercenter.com/attractions/top-of-the-rock/' },
+      resv:{ at:'2026-10-07 17:00', dur:120, label:'확정 티켓 (예매처 확정 시 링크 교체)', url:'https://www.rockefellercenter.com/attractions/top-of-the-rock/', ics:'d2-top-of-the-rock.ics' },
       note:'18:30 일몰 → 19:00까지 야경. 15:53~16:13 록펠러 인근 델리에서 간단 요기($8~12) 먼저' },
     { type:'food', name:"Adel's Famous Halal Food", coord:[40.7597,-73.9799],
       time:'19:05~19:20', stay:'15~20분(포장)', menu:'치킨 오버 라이스', price:'$9 현금 / 앱주문 $12~14',
@@ -1018,7 +1018,9 @@ function buildPopup(di, si){
       <a class="pbtn" href="${lyft}" target="_blank">Lyft</a>
       ${extra}
       ${s.resv && s.resv.url ? `<a class="pbtn" href="${s.resv.url}" target="_blank">예약 확인</a>` : ''}
-      ${s.resv ? `<button class="pbtn" onclick="dlIcs(${di},${si})">90분 전 알림</button>` : ''}
+      ${s.resv ? (s.resv.ics
+        ? `<a class="pbtn" href="${s.resv.ics}">90분 전 알림</a>`
+        : `<button class="pbtn" onclick="dlIcs(${di},${si})">90분 전 알림</button>`) : ''}
       <button class="pbtn spend" onclick="openSpend(${di},${si})">지출 ${sp ? '수정' : '입력'}</button>
     </div>`;
 }
