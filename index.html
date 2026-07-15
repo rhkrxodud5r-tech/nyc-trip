@@ -260,6 +260,16 @@
   #crowd-btn svg { width:20px; height:20px; stroke:#e6ebf2; fill:none; }
   #crowd-btn.on { background:linear-gradient(135deg,#f08c3a,#d0512d); border-color:transparent; }
   .cr-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:baseline; }
+  #crowd-toast {
+    position:fixed; top:calc(142px + env(safe-area-inset-top, 0px)); left:50%; transform:translateX(-50%);
+    z-index:1002; display:none; white-space:nowrap;
+    background:rgba(10,12,16,.92); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    color:#fff; font-size:11.5px; font-weight:600; padding:8px 14px; border-radius:999px;
+    box-shadow:var(--shadow); border:1px solid var(--line);
+    transition:opacity .4s; opacity:1;
+  }
+  #crowd-toast .cr-dot { margin-left:8px; }
+  #crowd-toast .cr-dot:first-child { margin-left:0; }
 
   /* ---- 지출 입력 시트 ---- */
   #spend-sheet {
@@ -345,6 +355,7 @@
 <div id="day-summary"></div>
 <div id="island"><span id="isl-fx" class="isl-dim">₩ —</span><span class="isl-div"></span><span id="isl-wx" class="isl-dim">—°</span></div>
 <div id="island-card"></div>
+<div id="crowd-toast"></div>
 <button id="crowd-btn" title="혼잡도 표시" aria-label="혼잡도 표시">
   <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -470,6 +481,7 @@ const DAYS = [
       note:'MoMA는 관람시간 길어서 오늘 제외, 다른 날 배치 예정' },
     { type:'attraction', name:'Top of the Rock', coord:[40.7587,-73.9787],
       time:'17:00~19:00 입장', stay:'2시간', menu:'전망대(석양 슬롯)', price:'$52/인 = $104 (2인, 확정)',
+      resv:{ at:'2026-10-07 17:00', dur:120, label:'확정 티켓 (예매처 확정 시 링크 교체)', url:'https://www.rockefellercenter.com/attractions/top-of-the-rock/' },
       note:'18:30 일몰 → 19:00까지 야경. 15:53~16:13 록펠러 인근 델리에서 간단 요기($8~12) 먼저' },
     { type:'food', name:"Adel's Famous Halal Food", coord:[40.7597,-73.9799],
       time:'19:05~19:20', stay:'15~20분(포장)', menu:'치킨 오버 라이스', price:'$9 현금 / 앱주문 $12~14',
@@ -667,6 +679,14 @@ function selectDay(i){
     scrollEl.appendChild(row);
     rows.push(row);
   });
+  /* 피커 높이를 스팟 수에 맞춰 가변 조절 (화면 가림 최소화) */
+  const wrapH = Math.min(200, ROW_H * day.stops.length + 46);
+  const pad = Math.round((wrapH - ROW_H) / 2);
+  pickerWrap.style.height = wrapH + 'px';
+  document.getElementById('picker-highlight').style.top = pad + 'px';
+  scrollEl.style.padding = pad + 'px 0';
+  labelEl.style.bottom = `calc(${16 + wrapH + 6}px + env(safe-area-inset-bottom, 0px))`;
+
   programmaticScroll = true;
   scrollEl.scrollTop = 0;
   setTimeout(()=> programmaticScroll = false, 200);
@@ -901,20 +921,34 @@ const CROWD = {
        11:[2,'집결 15분 전 도착이면 충분'] },
 };
 const AREAS = [
-  { name:'Times Square', coord:[40.7580,-73.9855], r:350, bands:[[8,10,2,2],[10,17,3,3],[17,23,4,4],[23,25,2,2]] },
-  { name:'Rockefeller · 5th Ave', coord:[40.7587,-73.9787], r:350, bands:[[10,19,3,4],[19,22,3,3]] },
-  { name:'Grand Central', coord:[40.7527,-73.9772], r:250, bands:[[8,10,4,2],[10,17,2,2],[17,19,4,2]] },
-  { name:'브루클린 브릿지', coord:[40.7061,-73.9969], r:450, bands:[[10,17,3,4],[17,19,2,3]] },
-  { name:'DUMBO', coord:[40.7033,-73.9894], r:300, bands:[[11,18,2,4]] },
-  { name:'SoHo', coord:[40.7233,-74.0030], r:400, bands:[[12,18,3,4]] },
-  { name:'Chinatown · Little Italy', coord:[40.7170,-73.9986], r:350, bands:[[11,15,3,4],[15,20,2,3]] },
-  { name:'WTC · Oculus · 9/11', coord:[40.7115,-74.0125], r:300, bands:[[10,17,3,3]] },
-  { name:'Battery Park (페리)', coord:[40.7033,-74.0170], r:300, bands:[[9,15,3,4],[15,18,2,3]] },
-  { name:'Central Park 남단', coord:[40.7680,-73.9800], r:450, bands:[[11,17,3,4]] },
-  { name:"Herald Sq · Macy's", coord:[40.7506,-73.9876], r:250, bands:[[12,19,3,4]] },
-  { name:'Bryant Park', coord:[40.7536,-73.9832], r:220, bands:[[12,14,3,3],[14,18,2,3]] },
-  { name:'High Line · Chelsea Mkt', coord:[40.7424,-74.0060], r:400, bands:[[11,17,3,4]] },
-  { name:'Williamsburg (Bedford)', coord:[40.7170,-73.9569], r:400, bands:[[12,19,2,4],[19,23,3,3]] },
+  { name:'Times Square', coord:[40.7580,-73.9855], r:350, bands:[[8,10,2,2],[10,17,3,3],[17,23,4,4],[23,25,2,2]],
+    recs:"🌮 Los Tacos No.1 (229 W 43rd, 타코 $5~7) · 🍰 Junior's 치즈케이크 ($11~13) · 🛍 M&M's World" },
+  { name:'Rockefeller · 5th Ave', coord:[40.7587,-73.9787], r:350, bands:[[10,19,3,4],[19,22,3,3]],
+    recs:"🍛 Adel's Halal 카트 ($9~14) · ☕ Blue Bottle 록펠러점 · 🛍 FAO Schwarz (장난감·기념품)" },
+  { name:'Grand Central', coord:[40.7527,-73.9772], r:250, bands:[[8,10,4,2],[10,17,2,2],[17,19,4,2]],
+    recs:"🦪 Oyster Bar 클램차우더 ($9~) · ☕ Joe Coffee (역사 내) · 🛍 Grand Central Market" },
+  { name:'브루클린 브릿지', coord:[40.7061,-73.9969], r:450, bands:[[10,17,3,4],[17,19,2,3]],
+    recs:"🍕 Juliana's Pizza (브루클린측 하차 도보 5분, 셰어 $22~26) · ☕ Time Out Market 루프탑 뷰" },
+  { name:'DUMBO', coord:[40.7033,-73.9894], r:300, bands:[[11,18,2,4]],
+    recs:"🍽 Time Out Market ($15~25) · 🍫 Jacques Torres 핫초코 · 🛍 powerHouse Arena 서점" },
+  { name:'SoHo', coord:[40.7233,-74.0030], r:400, bands:[[12,18,3,4]],
+    recs:"🍕 Prince Street Pizza ($5~7) · ☕ La Colombe · 🛍 MoMA Design Store" },
+  { name:'Chinatown · Little Italy', coord:[40.7170,-73.9986], r:350, bands:[[11,15,3,4],[15,20,2,3]],
+    recs:"🥟 Joe's Shanghai 샤오롱바오 ($12~15) · 🍰 Ferrara Bakery 카놀리 (1892~) · 🍨 Chinatown Ice Cream Factory" },
+  { name:'WTC · Oculus · 9/11', coord:[40.7115,-74.0125], r:300, bands:[[10,17,3,3]],
+    recs:"🍝 Eataly Downtown ($20~30) · 🥐 Le District (Brookfield Place, $10~20)" },
+  { name:'Battery Park (페리)', coord:[40.7033,-74.0170], r:300, bands:[[9,15,3,4],[15,18,2,3]],
+    recs:"🥯 Leo's Bagels (Hanover Sq, $6~12) · 🛍 공원 내 공식 기념품 스탠드" },
+  { name:'Central Park 남단', coord:[40.7680,-73.9800], r:450, bands:[[11,17,3,4]],
+    recs:"🍛 The Halal Guys 본점 카트 (53rd & 6th, $10~13) · 🧇 Wafels & Dinges 카트 ($8~12)" },
+  { name:"Herald Sq · Macy's", coord:[40.7506,-73.9876], r:250, bands:[[12,19,3,4]],
+    recs:"🍲 K-타운 32nd St (순두부·국밥 $18~25) · ☕ Grace Street (한인 카페·빙수) · 🛍 Macy's 본점" },
+  { name:'Bryant Park', coord:[40.7536,-73.9832], r:220, bands:[[12,14,3,3],[14,18,2,3]],
+    recs:"☕ Culture Espresso (쿠키 $4~6) · 🛍 Kinokuniya 서점 (문구·기념품)" },
+  { name:'High Line · Chelsea Mkt', coord:[40.7424,-74.0060], r:400, bands:[[11,17,3,4]],
+    recs:"🌮 Los Tacos No.1 첼시마켓 본점 ($5~7) · 🍩 Doughnuttery · 🛍 Artists & Fleas" },
+  { name:'Williamsburg (Bedford)', coord:[40.7170,-73.9569], r:400, bands:[[12,19,2,4],[19,23,3,3]],
+    recs:"🍕 L'industrie (버라타 슬라이스 $7~9) · ☕ Devoción 본점 · 🛍 Awoke Vintage" },
 ];
 function nyNow(){
   const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour:'numeric', hourCycle:'h23', weekday:'short' }).formatToParts(new Date());
@@ -937,13 +971,24 @@ function renderCrowd(){
     c.bindPopup(`
       <div class="popup-title">${a.name}</div>
       <div class="popup-row"><span class="cr-dot" style="background:${CR_COLORS[lv]}"></span><b>${CR_NAMES[lv]}</b> — 뉴욕 현재 ${t.h}시 · ${t.we ? '주말' : '평일'} 패턴</div>
-      <div class="popup-note">구글 방문 통계 시간대 패턴 기반(실측 아님). 초록=한산 · 노랑=보통 · 주황=붐빔 · 빨강=매우 붐빔</div>`, { maxWidth:250 });
+      ${a.recs ? `<div class="popup-note">${a.recs}</div>` : ''}`, { maxWidth:260 });
   });
+}
+let toastTimer = null;
+function showCrowdToast(){
+  const el = document.getElementById('crowd-toast');
+  el.innerHTML = CR_NAMES.slice(1).map((n, i) => `<span class="cr-dot" style="background:${CR_COLORS[i+1]}"></span>${n}`).join('');
+  el.style.display = 'block'; el.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => { el.style.display = 'none'; }, 400);
+  }, 3500);
 }
 document.getElementById('crowd-btn').addEventListener('click', function(){
   crowdOn = !crowdOn;
   this.classList.toggle('on', crowdOn);
-  if (crowdOn){ renderCrowd(); crowdLayer.addTo(map); }
+  if (crowdOn){ renderCrowd(); crowdLayer.addTo(map); showCrowdToast(); }
   else { map.removeLayer(crowdLayer); }
 });
 
@@ -965,14 +1010,41 @@ function buildPopup(di, si){
     ${est ? `<div class="popup-row"><b>예상</b> ${fmt$(est[0])}${est[1]>est[0] ? '~'+fmt$(est[1]) : ''}<span class="cat-tag">${est[2]}</span></div>` : ''}
     ${sp ? `<div class="popup-row spent"><b>실제</b> ${spDisp(sp)} · ${sp.pay==='cash'?'현금':'카드'}${sp.memo ? ' · '+sp.memo : ''}</div>` : ''}
     ${(CROWD[d.day]||{})[si] ? `<div class="popup-row"><b>혼잡</b> <span class="cr-dot" style="background:${CR_COLORS[CROWD[d.day][si][0]]}"></span>${CR_NAMES[CROWD[d.day][si][0]]}${CROWD[d.day][si][1] ? ' — '+CROWD[d.day][si][1] : ''}</div>` : ''}
+    ${s.resv ? `<div class="popup-row"><b>예약</b> ${s.resv.at.slice(5,10).replace('-','/')} ${s.resv.at.slice(11,16)}${s.resv.label ? ' · '+s.resv.label : ''}</div>` : ''}
     <div class="popup-note">${s.note}</div>
     <div class="pbtn-row">
       <a class="pbtn" href="${gmap}" target="_blank">길찾기</a>
       <a class="pbtn" href="${uber}" target="_blank">Uber</a>
       <a class="pbtn" href="${lyft}" target="_blank">Lyft</a>
       ${extra}
+      ${s.resv && s.resv.url ? `<a class="pbtn" href="${s.resv.url}" target="_blank">예약 확인</a>` : ''}
+      ${s.resv ? `<button class="pbtn" onclick="dlIcs(${di},${si})">90분 전 알림</button>` : ''}
       <button class="pbtn spend" onclick="openSpend(${di},${si})">지출 ${sp ? '수정' : '입력'}</button>
     </div>`;
+}
+
+/* --- 예약 알림: .ics 캘린더 파일 생성 (90분 전 iOS 네이티브 알림) --- */
+function dlIcs(di, si){
+  const s = DAYS[di].stops[si], r = s.resv;
+  if (!r) return;
+  const dp = r.at.split(' ')[0].split('-').map(Number), tp = r.at.split(' ')[1].split(':').map(Number);
+  const startUtc = new Date(Date.UTC(dp[0], dp[1]-1, dp[2], tp[0]+4, tp[1])); // 10월 뉴욕 = EDT(UTC-4)
+  const endUtc = new Date(startUtc.getTime() + (r.dur || 90) * 60000);
+  const f = dt => dt.toISOString().replace(/[-:]/g,'').slice(0,15) + 'Z';
+  const esc = t => String(t).replace(/([,;])/g, '\\$1');
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//nyctrip//KO','BEGIN:VEVENT',
+    'UID:nyctrip-d' + DAYS[di].day + 's' + si + '@local',
+    'DTSTAMP:' + f(new Date()),
+    'DTSTART:' + f(startUtc),
+    'DTEND:' + f(endUtc),
+    'SUMMARY:' + esc(s.name) + ' 예약',
+    'DESCRIPTION:' + esc(((r.label || '') + ' ' + (r.url || '')).trim()),
+    'BEGIN:VALARM','TRIGGER:-PT90M','ACTION:DISPLAY','DESCRIPTION:예약 90분 전 알림','END:VALARM',
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+  a.download = 'nyc-d' + DAYS[di].day + '-reservation.ics';
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
 /* --- 일별 요약 (우측상단) --- */
