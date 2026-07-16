@@ -1035,7 +1035,7 @@ function buildPopup(di, si){
     ${sp ? `<div class="popup-row spent"><b>실제</b> ${spDisp(sp)} · ${sp.pay==='cash'?'현금':'카드'}${sp.memo ? ' · '+sp.memo : ''}</div>` : ''}
     ${(CROWD[d.day]||{})[si] ? `<div class="popup-row"><b>혼잡</b> <span class="cr-dot" style="background:${CR_COLORS[CROWD[d.day][si][0]]}"></span>${CR_NAMES[CROWD[d.day][si][0]]}${CROWD[d.day][si][1] ? ' — '+CROWD[d.day][si][1] : ''}</div>` : ''}
     ${s.resv ? `<div class="popup-row"><b>예약</b> ${s.resv.at.slice(5,10).replace('-','/')} ${s.resv.at.slice(11,16)}${s.resv.label ? ' · '+s.resv.label : ''}</div>` : ''}
-    ${si < d.stops.length-1 && d.segs && d.segs[si] ? `<div class="popup-row"><b>다음 이동</b> <span class="cr-dot" style="background:${(MODE_META[d.modes[si]]||MODE_META.walk).color}"></span>${(MODE_META[d.modes[si]]||MODE_META.walk).label} · ${d.segs[si]} → ${d.stops[si+1].name.length > 14 ? d.stops[si+1].name.slice(0,13)+'…' : d.stops[si+1].name}</div>` : ''}
+    ${si < d.stops.length-1 && d.segs && d.segs[si] ? `<div class="popup-row"><b>다음 이동</b> <span class="cr-dot" style="background:${(MODE_META[d.modes[si]]||MODE_META.walk).color}"></span>${(MODE_META[d.modes[si]]||MODE_META.walk).label} · ${d.segs[si]} → ${d.stops[si+1].name}</div>` : ''}
     <div class="popup-note">${s.note}</div>
     <div class="pbtn-row">
       <a class="pbtn" href="${gmap}" target="_blank">길찾기</a>
