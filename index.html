@@ -452,7 +452,8 @@ const DAYS = [
       time:'자정 전후 체크인', stay:'-', menu:'-', price:'Uber/Lyft 약 $70~95 + 톨',
       note:'약 19마일·40~50분. 심야라 대중교통 비추천 — 라이드셰어로 바로 이동. 두 앱 실시간가 비교' },
   ],
-  modes:['uber'] },
+  modes:['uber'],
+  segs:['약 40~50분 (19마일)'] },
 
 { day:2, date:'10/7', dow:'수', title:'Day 2 · 브릿지+미드타운', sub:'브루클린 브릿지 → 미드타운 → 록펠러 → 퀸즈',
   stops:[
@@ -512,7 +513,8 @@ const DAYS = [
       time:'20:00~20:10 도착', stay:'-', menu:'-', price:'Lyft $33(견적) / Uber 추정 $34~39',
       note:'5마일·18~20분. 저녁 시간대 서지 가능성 — 두 앱 다 확인 후 승차' },
   ],
-  modes:['uber','walk','walk','walk','subway','walk','walk','walk','walk','walk','walk','walk','walk','walk','walk','subway','uber'] },
+  modes:['uber','walk','walk','walk','subway','walk','walk','walk','walk','walk','walk','walk','walk','walk','walk','subway','uber'],
+  segs:['약 12분 (2.5마일)','8분 (Cadman Plaza 경유)','25~35분 (브릿지 횡단)','3분','6호선 22분','3분','11분','12분','2분','10분','5분','20분','18분','1~2분','5분','F선 약 15분','약 18~20분 (5마일)'] },
 
 { day:3, date:'10/8', dow:'목', title:'Day 3 · 센트럴파크+메트', sub:'피크닉·촬영 → 갤러거스 → 메트 → 나이트투어',
   stops:[
@@ -560,7 +562,8 @@ const DAYS = [
       time:'20:40 도착', stay:'-', menu:'-', price:'Uber $13~17 / Lyft $9~13',
       note:'Day 3 표 기준 예상 지출(2인): 약 $301~337' },
   ],
-  modes:['uber','subway','walk','walk','walk','walk','uber','subway','walk','bus','walk','subway','uber'] },
+  modes:['uber','subway','walk','walk','walk','walk','uber','subway','walk','bus','walk','subway','uber'],
+  segs:['약 15분 (1.9마일)','N/Q 22~25분','18~20분','1~2분','6~8분','15~16분','차량 15분 (대안: 지하철 40~45분)','약 28~33분 (도보8+6호선15+셔틀S 5)','5분','1.5~2시간 (야경 주행)','2분','N/Q 22~25분','약 15분 (1.9마일)'] },
 
 { day:4,  date:'10/9',  dow:'금', title:'Day 4',  sub:'상세 미정', stops:[], modes:[],
   placeholder:'후보 테마: 전망대(One World / Edge / Empire State / Summit One Vanderbilt), MoMA(다른 날 이월분)' },
@@ -1032,6 +1035,7 @@ function buildPopup(di, si){
     ${sp ? `<div class="popup-row spent"><b>실제</b> ${spDisp(sp)} · ${sp.pay==='cash'?'현금':'카드'}${sp.memo ? ' · '+sp.memo : ''}</div>` : ''}
     ${(CROWD[d.day]||{})[si] ? `<div class="popup-row"><b>혼잡</b> <span class="cr-dot" style="background:${CR_COLORS[CROWD[d.day][si][0]]}"></span>${CR_NAMES[CROWD[d.day][si][0]]}${CROWD[d.day][si][1] ? ' — '+CROWD[d.day][si][1] : ''}</div>` : ''}
     ${s.resv ? `<div class="popup-row"><b>예약</b> ${s.resv.at.slice(5,10).replace('-','/')} ${s.resv.at.slice(11,16)}${s.resv.label ? ' · '+s.resv.label : ''}</div>` : ''}
+    ${si < d.stops.length-1 && d.segs && d.segs[si] ? `<div class="popup-row"><b>다음 이동</b> <span class="cr-dot" style="background:${(MODE_META[d.modes[si]]||MODE_META.walk).color}"></span>${(MODE_META[d.modes[si]]||MODE_META.walk).label} · ${d.segs[si]} → ${d.stops[si+1].name.length > 14 ? d.stops[si+1].name.slice(0,13)+'…' : d.stops[si+1].name}</div>` : ''}
     <div class="popup-note">${s.note}</div>
     <div class="pbtn-row">
       <a class="pbtn" href="${gmap}" target="_blank">길찾기</a>
