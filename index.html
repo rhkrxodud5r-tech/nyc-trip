@@ -451,10 +451,17 @@
    - stops가 비어 있으면 "미정" 카드가 표시됨 (placeholder 텍스트 사용)
    ============================================================ */
 
-/* 듀얼모드: modes[i]가 문자열이면 고정, {car, transit} 객체면 토글에 따라 해석 */
+/* 듀얼모드: modes[i]가 문자열이면 고정 1구간.
+   객체면 { car:{legs:[...]}, transit:{legs:[...]} } — 각 leg = { mode, to:[lat,lng](중간 경유점, 생략 시 다음 스팟) }
+   → 대중교통이 도보→지하철→도보처럼 다단계면 경유점별로 폴리라인이 분리되어 지도 경로 자체가 바뀜 */
 let transportMode = 'car';
 try { const t = localStorage.getItem('nycTmode'); if (t === 'car' || t === 'transit') transportMode = t; } catch(e){}
-function resolveMode(seg){ return typeof seg === 'string' ? seg : seg[transportMode]; }
+function segLegs(m){
+  if (typeof m === 'string') return [{ mode: m }];
+  const opt = m[transportMode];
+  if (opt && opt.legs) return opt.legs;
+  return [{ mode: opt }]; /* 구형 {car:'uber'} 호환 */
+}
 function resolveSeg(seg){ return typeof seg === 'string' ? seg : seg[transportMode]; }
 
 const MODE_META = {
@@ -545,12 +552,12 @@ const DAYS = [
       note:'Hewes St까지 도보 15분(0.7마일, 대부분 평지) — Day 4와 동일한 기본 원칙. 기존 Uber+Barclays 경유 대비 2인 $14~19 절약. 컨디션 안 좋은 날은 예외적으로 Uber' },
     { type:'transit', name:'Hewes St 역 (J/M/Z)', coord:[40.7069,-73.9534],
       time:'08:55 도착 → 09:00 탑승', stay:'-', menu:'-', price:'$3.00/인',
-      note:'M열차 직행(환승 없음) 25분, 8분 간격 배차 — 구글맵 실측 확인' },
+      note:'M열차 직행(환승 없음) 22분(8정거장), 8분 간격 배차 — 구글맵 실측 확인' },
     { type:'transit', name:'42 St-Bryant Pk 역 (M) → Times Sq', coord:[40.7542,-73.9842],
-      time:'09:29 도착', stay:'-', menu:'-', price:'-',
-      note:'M열차 하차 후 타임스퀘어 방면 도보 4분 — 이후 7th/8th Ave 북상 → 베이글 픽업' },
+      time:'09:27 도착', stay:'-', menu:'-', price:'-',
+      note:'M열차 하차 후 도보 5분(0.4마일) — 이후 7th/8th Ave 북상 → 베이글 픽업' },
     { type:'food', name:'Broad Nosh Bagels', coord:[40.7676,-73.9843],
-      time:'09:44~09:59', stay:'15분', menu:'베이글 2종 (피크닉용 픽업)', price:'$6~8/개',
+      time:'09:47~09:59', stay:'15분', menu:'베이글 2종 (피크닉용 픽업)', price:'$6~8/개',
       note:'카운터서비스, 팁 불필요. 314 W 58th St — 컬럼버스서클 바로 앞' },
     { type:'attraction', name:'Central Park 진입 (Columbus Circle)', coord:[40.7681,-73.9819],
       time:'09:59', stay:'-', menu:'-', price:'무료',
@@ -574,18 +581,15 @@ const DAYS = [
     { type:'attraction', name:'나이트투어 종료 (Times Square)', coord:[40.7580,-73.9855],
       time:'19:30~20:00 종료', stay:'-', menu:'야경 투어 1.5~2시간', price:'포함',
       note:'오픈탑 상부는 10월 밤 쌀쌀함 — 겉옷 필수' },
-    { type:'transit', name:'Times Sq-42 St 역', coord:[40.7553,-73.9870],
-      time:'20:00 탑승', stay:'-', menu:'-', price:'$3.00/인',
-      note:'N/Q로 Atlantic Av-Barclays까지 22~25분' },
-    { type:'transit', name:'Atlantic Av-Barclays Ctr 역', coord:[40.6840,-73.9772],
-      time:'20:24 도착', stay:'-', menu:'-', price:'-',
-      note:'여기서 Uber/Lyft 호출 — 야간이라 서지 낮음' },
+    { type:'transit', name:'Hewes St 역 (M, 귀가)', coord:[40.7069,-73.9534],
+      time:'20:26 도착', stay:'-', menu:'-', price:'$3.00/인',
+      note:'도보 4분(42 St-Bryant Pk 경유, 0.2마일) + M열차 직행 22분(8정거장) — 아침 노선의 역순, 구글맵 실측 재확인. 환승 없음, 8분 배차' },
     { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
-      time:'20:40 도착', stay:'-', menu:'-', price:'Uber $13~17 / Lyft $9~13',
-      note:'Day 3 표 기준 예상 지출(2인): 약 $291~318 (아침 구간 도보 전환으로 $14~19 절약 반영)' },
+      time:'20:41 도착', stay:'-', menu:'-', price:'무료 (도보)',
+      note:'Hewes St에서 도보 15분 — 아침 경로 역순. Day 3 표 기준 예상 지출(2인): 약 $282~301 (호텔↔맨해튼 왕복 전 구간이 도보+지하철로 전환, 남은 차량 변수는 메트행뿐)' },
   ],
-  modes:['walk','subway','walk','walk','walk','walk','uber','subway','walk','bus','walk','subway','uber'],
-  segs:['도보 15분 (0.7마일, 평지)','M열차 직행 25분 + 도보 4분','18~20분','1~2분','6~8분','15~16분','차량 15분 (대안: 지하철 40~45분)','약 28~33분 (도보8+6호선15+셔틀S 5)','5분','1.5~2시간 (야경 주행)','2분','N/Q 22~25분','약 15분 (1.9마일)'] },
+  modes:['walk','subway','walk','walk','walk','walk','uber','subway','walk','bus','subway','walk'],
+  segs:['도보 15분 (0.7마일, 평지)','M열차 직행 22분(8정거장) + 도보 5분','18~20분','1~2분','6~8분','15~16분','차량 15분 (대안: 지하철 40~45분)','약 28~33분 (도보8+6호선15+셔틀S 5)','5분','1.5~2시간 (야경 주행)','도보 4분 + M열차 직행 22분','도보 15분 (0.7마일, 평지)'] },
 
 { day:4, date:'10/9', dow:'금', title:'Day 4 · 헬기투어+웨스트사이드', sub:'로어맨해튼 → 헬기 → Vessel·하이라인 → 오마카세',
   stops:[
@@ -630,23 +634,31 @@ const DAYS = [
       time:'15:20~16:20', stay:'45분~1시간', menu:'관람', price:'무료',
       note:'— ' },
     { type:'food', name:'Mojo East (85 Stanton St)', coord:[40.7218,-73.9884],
-      time:'18:00 예약 (16:45~ 대기)', stay:'1시간', menu:'13코스 오마카세', price:'$55/인 = $110 (2인)',
+      time:'18:00 예약 (도착 16:45 차량 / 16:49 대중교통)', stay:'1시간', menu:'13코스 오마카세', price:'$55/인 = $110 (2인)',
       resv:{ at:'2026-10-09 18:00', dur:60, label:'Resy 예약 필수 — 매진 시 문자 929-331-4539', url:'https://resy.com' },
-      note:'노팁 정책. 10/9(금) 영업 17:00~23:00. 이동은 차량 $18~21 / 대중교통 $6 — 토글로 전환' },
+      note:'노팁 정책. 10/9(금) 영업 17:00~23:00. 이동은 차량 $18~21 / 대중교통 $6 — 토글로 전환 (대중교통은 도보→지하철→도보 3구간으로 지도 경로가 바뀜)' },
     { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
-      time:'19:21~19:40 도착', stay:'-', menu:'-', price:'차량 $17~19 / 대중교통 $6',
+      time:'19:20 (차량) / 19:37 (대중교통) 도착', stay:'-', menu:'-', price:'차량 $17~19 / 대중교통 $6',
       note:'Day 4 표 기준 예상 지출(2인): 약 $968~996 (차량 기준, 헬기 $716.46 포함). 대중교통 전환 시 약 $46~54 절약' },
   ],
   modes:['walk','subway','walk','walk','walk','walk','walk',
-    { car:'uber', transit:'walk' },
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'walk' }] } },
     'walk','subway','walk','walk',
-    { car:'uber', transit:'subway' },
-    { car:'uber', transit:'subway' }],
+    { car:{ legs:[{ mode:'uber' }] },
+      transit:{ legs:[
+        { mode:'walk',   to:[40.7398,-74.0027] },   /* Little Island → 14 St역 (A/C/E) */
+        { mode:'subway', to:[40.7231,-73.9899] },   /* 14 St → 2 Av (F, 환승 포함) */
+        { mode:'walk' }] } },                        /* 2 Av → Mojo East */
+    { car:{ legs:[{ mode:'uber' }] },
+      transit:{ legs:[
+        { mode:'walk',   to:[40.7183,-73.9877] },   /* Mojo → Delancey St-Essex St역 */
+        { mode:'subway', to:[40.7069,-73.9534] },   /* M/J/Z → Hewes St */
+        { mode:'walk' }] } }],                       /* Hewes St → 호텔 도보 15분 */
   segs:['도보 15분 (0.7마일, 평지)','J/M 직행 24분','5분 (Stone St 경유)','15분','3~4분','5분','3분',
     { car:'차량 8분 · $11~14', transit:'도보 약 20분 · 무료' },
     '11:00 체크인 → 12:00 비행','지하철 36분 (1호선+7호선) — 차량도 36분, 지하철 확정','도보 (하이라인 산책)','5분',
-    { car:'차량 15분 · $18~21', transit:'대중교통 약 30분 · $6' },
-    { car:'Uber 20~21분 · $17~19', transit:'도보7분 + J/M/Z 16분 + 도보15분 · $6' }] },
+    { car:'Uber 직행 15~20분 · $18~21', transit:'도보 11분(14 St역) + A/C/E→F 19분(7분 배차) + 도보 1분 = 약 29분 · $6' },
+    { car:'Uber 직행 20~21분 · $17~19', transit:'도보 7분(Delancey St-Essex St) + M/J/Z 15분(5분 배차) + 도보 15분 = 약 37분 · $6' }] },
 { day:5,  date:'10/10', dow:'토', title:'Day 5',  sub:'상세 미정', stops:[], modes:[],
   placeholder:'후보 테마: 헬기투어(HeliNY, Pier 6 Downtown Heliport) — 주말 혼잡 고려해 예약 필수' },
 { day:6,  date:'10/11', dow:'일', title:'Day 6',  sub:'상세 미정', stops:[], modes:[],
@@ -714,7 +726,7 @@ document.getElementById('hd-day').addEventListener('click', openDayModal);
 dayModal.addEventListener('click', (e) => { if (e.target === dayModal) dayModal.style.display = 'none'; });
 
 function buildLegend(day){
-  const used = [...new Set(day.modes.map(resolveMode))];
+  const used = [...new Set(day.modes.flatMap(m => segLegs(m).map(l => l.mode)))];
   legendEl.innerHTML = used.length
     ? used.map(m => `<div class="legend-item"><span class="legend-line" style="background:${MODE_META[m].color}"></span>${MODE_META[m].label}</div>`).join('')
     : '<div class="legend-item" style="color:#6b7484">일정 확정 후 이동수단이 표시됩니다</div>';
@@ -760,10 +772,14 @@ function selectDay(i){
   });
 
   for (let k=0; k<day.stops.length-1; k++){
-    const meta = MODE_META[resolveMode(day.modes[k])] || MODE_META.walk;
-    const seg = [day.stops[k].coord, day.stops[k+1].coord];
-    L.polyline(seg, { color:'#ffffff', weight: meta.weight+4, opacity:0.9 }).addTo(dayLayer);
-    L.polyline(seg, { color: meta.color, weight: meta.weight, opacity:1, dashArray: meta.dash }).addTo(dayLayer);
+    let prev = day.stops[k].coord;
+    for (const leg of segLegs(day.modes[k])){
+      const end = leg.to || day.stops[k+1].coord;
+      const meta = MODE_META[leg.mode] || MODE_META.walk;
+      L.polyline([prev, end], { color:'#ffffff', weight: meta.weight+4, opacity:0.9 }).addTo(dayLayer);
+      L.polyline([prev, end], { color: meta.color, weight: meta.weight, opacity:1, dashArray: meta.dash }).addTo(dayLayer);
+      prev = end;
+    }
   }
 
   map.fitBounds(L.latLngBounds(day.stops.map(s=>s.coord)), { padding:[30,30] });
@@ -853,7 +869,7 @@ const EST = {
        10:[8.5,10,'식사'], 13:[94,95,'입장·투어'], 14:[24,28,'식사'], 15:[5.8,5.8,'교통'], 17:[33,39,'교통'] },
   /* Day3: 'r7'=갤러거스→메트 차량, 's7'=메트→타임스퀘어 지하철 (스팟에 안 붙는 이동비 항목 — 합계에만 반영) */
   3: { 1:[6,6,'교통'], 3:[12,16,'식사'], 6:[68,68,'식사'], 7:[60,60,'입장·투어'],
-       r7:[12,19,'교통'], s7:[6,6,'교통'], 8:[24,32,'식사'], 9:[88,88,'입장·투어'], 11:[6,6,'교통'], 13:[9,17,'교통'] },
+       r7:[12,19,'교통'], s7:[6,6,'교통'], 8:[24,32,'식사'], 9:[88,88,'입장·투어'], 11:[6,6,'교통'] },
   /* Day4: 차량 기준. 'm10'=헬리포트→Vessel 지하철, 'm13'=리틀아일랜드→모조 차량 */
   4: { 1:[6,6,'교통'], 4:[30,40,'식사'], 8:[11,14,'교통'], 9:[716.46,716.46,'입장·투어'],
        m10:[6,6,'교통'], 10:[24,24,'입장·투어'], 11:[30,40,'식사'], m13:[18,21,'교통'], 13:[110,110,'식사'], 14:[17,19,'교통'] },
@@ -1106,6 +1122,15 @@ document.getElementById('crowd-btn').addEventListener('click', function(){
   else { map.removeLayer(crowdLayer); }
 });
 
+/* --- 팝업 "다음 이동" 행 (듀얼모드 leg 인식) --- */
+function segRow(d, si){
+  if (!(si < d.stops.length - 1 && d.segs && d.segs[si])) return '';
+  const legs = segLegs(d.modes[si]);
+  const dotMode = (legs.find(l => l.mode === 'subway') || legs[0]).mode;
+  const label = [...new Set(legs.map(l => (MODE_META[l.mode] || MODE_META.walk).label))].join(' + ');
+  return `<div class="popup-row"><b>다음 이동</b> <span class="cr-dot" style="background:${(MODE_META[dotMode]||MODE_META.walk).color}"></span>${label} · ${resolveSeg(d.segs[si])} → ${d.stops[si+1].name}${typeof d.modes[si] !== 'string' ? ' <span class="cat-tag">토글 연동</span>' : ''}</div>`;
+}
+
 /* --- 팝업 생성 (예상/실제 지출 + 딥링크 버튼 포함) --- */
 function buildPopup(di, si){
   const d = DAYS[di], s = d.stops[si];
@@ -1125,7 +1150,7 @@ function buildPopup(di, si){
     ${sp ? `<div class="popup-row spent"><b>실제</b> ${spDisp(sp)} · ${sp.pay==='cash'?'현금':'카드'}${sp.memo ? ' · '+sp.memo : ''}</div>` : ''}
     ${(CROWD[d.day]||{})[si] ? `<div class="popup-row"><b>혼잡</b> <span class="cr-dot" style="background:${CR_COLORS[CROWD[d.day][si][0]]}"></span>${CR_NAMES[CROWD[d.day][si][0]]}${CROWD[d.day][si][1] ? ' — '+CROWD[d.day][si][1] : ''}</div>` : ''}
     ${s.resv ? `<div class="popup-row"><b>예약</b> ${s.resv.at.slice(5,10).replace('-','/')} ${s.resv.at.slice(11,16)}${s.resv.label ? ' · '+s.resv.label : ''}</div>` : ''}
-    ${si < d.stops.length-1 && d.segs && d.segs[si] ? `<div class="popup-row"><b>다음 이동</b> <span class="cr-dot" style="background:${(MODE_META[resolveMode(d.modes[si])]||MODE_META.walk).color}"></span>${(MODE_META[resolveMode(d.modes[si])]||MODE_META.walk).label} · ${resolveSeg(d.segs[si])} → ${d.stops[si+1].name}${typeof d.modes[si] !== 'string' ? ' <span class="cat-tag">토글 연동</span>' : ''}</div>` : ''}
+    ${segRow(d, si)}
     <div class="popup-note">${s.note}</div>
     <div class="pbtn-row">
       <a class="pbtn" href="${gmap}" target="_blank">길찾기</a>
