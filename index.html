@@ -272,6 +272,38 @@
   #crowd-btn:active { transform:scale(.94); }
   #crowd-btn svg { width:20px; height:20px; stroke:#e6ebf2; fill:none; }
   #crowd-btn.on { background:linear-gradient(135deg,#f08c3a,#d0512d); border-color:transparent; }
+  #btn3d {
+    position:fixed; left:14px; bottom:calc(178px + env(safe-area-inset-bottom)); z-index:1000;
+    width:46px; height:46px; border-radius:50%; border:1px solid var(--line); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff;
+    background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    box-shadow:var(--shadow); transition:background .2s, transform .15s;
+  }
+  #btn3d:active { transform:scale(.94); }
+  #btn3d.on { background:var(--acc-grad); border-color:transparent; }
+
+  /* ---- 3D 뷰 ---- */
+  #map3d {
+    position:fixed; left:0; right:0; bottom:0; top:calc(88px + env(safe-area-inset-top, 0px));
+    z-index:900; display:none; background:#e8e6e1;
+  }
+  body.mode3d #gps-btn, body.mode3d #crowd-btn, body.mode3d #park-btn,
+  body.mode3d #picker-wrap, body.mode3d #picker-label,
+  body.mode3d #island, body.mode3d #island-card, body.mode3d #day-summary { display:none !important; }
+  #d3-controls {
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(20px + env(safe-area-inset-bottom)); z-index:1600; display:none; gap:8px;
+  }
+  body.mode3d #d3-controls { display:flex; }
+  #d3-controls button {
+    border:1px solid var(--line); background:rgba(10,12,16,.9); color:#fff;
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    font-size:12.5px; font-weight:700; padding:10px 16px; border-radius:999px; cursor:pointer;
+    box-shadow:var(--shadow);
+  }
+  #d3-controls button.primary { background:var(--acc-grad); border-color:transparent; }
+  .ml-marker { cursor:pointer; }
+
   #park-btn {
     position:fixed; left:14px; bottom:calc(124px + env(safe-area-inset-bottom)); z-index:1000;
     width:46px; height:46px; border-radius:50%; border:1px solid var(--line); cursor:pointer;
@@ -387,6 +419,13 @@
 <div id="island"><span id="isl-fx" class="isl-dim">₩ —</span><span class="isl-div"></span><span id="isl-wx" class="isl-dim">—°</span></div>
 <div id="island-card"></div>
 <div id="crowd-toast"></div>
+<button id="btn3d" title="3D 보기" aria-label="3D 보기">3D</button>
+<div id="map3d"></div>
+<div id="d3-controls">
+  <button id="d3-play" class="primary">▶ 경로 따라가기</button>
+  <button id="d3-view">시점: 부감</button>
+  <button id="d3-close">✕ 닫기</button>
+</div>
 <button id="park-btn" title="센트럴파크 명소 핀" aria-label="센트럴파크 명소 핀">🌳</button>
 <button id="crowd-btn" title="혼잡도 표시" aria-label="혼잡도 표시">
   <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -752,6 +791,9 @@ function selectDay(i){
   buildLegend(day);
   updateDaySummary(i);
   updateTmode(day);
+  if (typeof ml3d !== 'undefined' && ml3d.open){
+    if (day.stops.length){ stopFly(); draw3dRoute(); } else { close3d(); }
+  }
   if (typeof islandCard !== 'undefined' && islandCard.style.display === 'block') renderIslandCard();
 
   if (!day.stops.length){
@@ -1415,6 +1457,172 @@ function setTransportMode(t){
 }
 document.getElementById('tm-car').addEventListener('click', () => setTransportMode('car'));
 document.getElementById('tm-transit').addEventListener('click', () => setTransportMode('transit'));
+
+/* ============================================================
+   3D 보기 — MapLibre GL + OpenFreeMap (무료·키 불필요, 버튼 클릭 시 지연 로드)
+   ============================================================ */
+const ml3d = { map:null, libLoaded:false, open:false, flying:false, req:null, fpv:false, markers:[] };
+
+function loadMapLibre(cb){
+  if (ml3d.libLoaded){ cb(); return; }
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
+  document.head.appendChild(css);
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+  s.onload = () => { ml3d.libLoaded = true; cb(); };
+  s.onerror = () => alert('3D 지도 모듈을 불러오지 못했습니다. 네트워크 확인 후 다시 시도해 주세요.');
+  document.body.appendChild(s);
+}
+
+/* 현재 날짜의 전체 경로 좌표([lng,lat])와 구간별 이동수단 — 듀얼모드 경유점 포함 */
+function path3d(day){
+  const pts = [], legModes = [];
+  for (let k = 0; k < day.stops.length - 1; k++){
+    let prev = day.stops[k].coord;
+    if (k === 0) pts.push([prev[1], prev[0]]);
+    for (const leg of segLegs(day.modes[k])){
+      const end = leg.to || day.stops[k+1].coord;
+      pts.push([end[1], end[0]]);
+      legModes.push(leg.mode);
+      prev = end;
+    }
+  }
+  return { pts, legModes };
+}
+
+function ensure3dBuildings(){
+  try {
+    const style = ml3d.map.getStyle();
+    if (style.layers.some(l => l.type === 'fill-extrusion')) return;
+    const srcId = Object.keys(style.sources).find(k => style.sources[k].type === 'vector');
+    if (!srcId) return;
+    ml3d.map.addLayer({
+      id:'nyc-3d-buildings', type:'fill-extrusion', source:srcId, 'source-layer':'building', minzoom:14,
+      paint:{
+        'fill-extrusion-color':'#d9d5cf',
+        'fill-extrusion-height':['coalesce', ['get','render_height'], ['get','height'], 12],
+        'fill-extrusion-base':['coalesce', ['get','render_min_height'], 0],
+        'fill-extrusion-opacity':0.85
+      }
+    });
+  } catch(e){}
+}
+
+function draw3dRoute(){
+  const m = ml3d.map, day = DAYS[curDay];
+  if (!m || !day.stops.length) return;
+  ml3d.markers.forEach(mk => mk.remove()); ml3d.markers = [];
+  if (m.getLayer('route-line')) m.removeLayer('route-line');
+  if (m.getLayer('route-casing')) m.removeLayer('route-casing');
+  if (m.getSource('route')) m.removeSource('route');
+
+  const features = [];
+  for (let k = 0; k < day.stops.length - 1; k++){
+    let prev = day.stops[k].coord;
+    for (const leg of segLegs(day.modes[k])){
+      const end = leg.to || day.stops[k+1].coord;
+      features.push({ type:'Feature',
+        properties:{ color:(MODE_META[leg.mode] || MODE_META.walk).color },
+        geometry:{ type:'LineString', coordinates:[[prev[1], prev[0]], [end[1], end[0]]] } });
+      prev = end;
+    }
+  }
+  m.addSource('route', { type:'geojson', data:{ type:'FeatureCollection', features } });
+  m.addLayer({ id:'route-casing', type:'line', source:'route',
+    layout:{ 'line-cap':'round', 'line-join':'round' },
+    paint:{ 'line-color':'#ffffff', 'line-width':8, 'line-opacity':0.9 } });
+  m.addLayer({ id:'route-line', type:'line', source:'route',
+    layout:{ 'line-cap':'round', 'line-join':'round' },
+    paint:{ 'line-color':['get','color'], 'line-width':4.5 } });
+
+  day.stops.forEach((s, idx) => {
+    const el = document.createElement('div');
+    el.className = 'ml-marker';
+    el.innerHTML = `<div class="divnum ${s.type}">${idx}</div>`;
+    ml3d.markers.push(new maplibregl.Marker({ element:el }).setLngLat([s.coord[1], s.coord[0]]).addTo(m));
+  });
+
+  const lats = day.stops.map(s => s.coord[0]), lngs = day.stops.map(s => s.coord[1]);
+  m.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+    { padding:70, pitch:58, bearing:-17, duration:800 });
+}
+
+function open3d(){
+  const day = DAYS[curDay];
+  if (!day.stops.length) return;
+  loadMapLibre(() => {
+    document.getElementById('map3d').style.display = 'block';
+    document.getElementById('btn3d').classList.add('on');
+    document.body.classList.add('mode3d');
+    ml3d.open = true;
+    const start = day.stops[0].coord;
+    if (!ml3d.map){
+      ml3d.map = new maplibregl.Map({
+        container:'map3d',
+        style:'https://tiles.openfreemap.org/styles/liberty',
+        center:[start[1], start[0]], zoom:15.5, pitch:58, bearing:-17
+      });
+      ml3d.map.on('load', () => { ensure3dBuildings(); draw3dRoute(); });
+    } else {
+      ml3d.map.resize();
+      draw3dRoute();
+    }
+  });
+}
+function close3d(){
+  stopFly();
+  document.getElementById('map3d').style.display = 'none';
+  document.getElementById('btn3d').classList.remove('on');
+  document.body.classList.remove('mode3d');
+  ml3d.open = false;
+}
+
+/* ---- 경로 따라가기 (팔로우 캠) ---- */
+function stopFly(){
+  ml3d.flying = false;
+  if (ml3d.req) cancelAnimationFrame(ml3d.req);
+  ml3d.req = null;
+  document.getElementById('d3-play').textContent = '▶ 경로 따라가기';
+}
+function startFly(){
+  const { pts, legModes } = path3d(DAYS[curDay]);
+  if (pts.length < 2 || !ml3d.map) return;
+  ml3d.flying = true;
+  document.getElementById('d3-play').textContent = '⏸ 정지';
+  let seg = 0, t = 0, curB = ml3d.map.getBearing();
+  const MPF = m => (m === 'walk' ? 0.9 : 5.5); /* 프레임당 이동(m): 도보는 천천히, 차량·지하철·버스는 빠르게 */
+  function segLen(a, b){
+    const dx = (b[0]-a[0]) * 111320 * 0.758, dy = (b[1]-a[1]) * 111320;
+    return Math.hypot(dx, dy);
+  }
+  function frame(){
+    if (!ml3d.flying) return;
+    const a = pts[seg], b = pts[seg+1];
+    const len = Math.max(segLen(a, b), 1);
+    t += MPF(legModes[seg] || 'walk') / len;
+    if (t >= 1){ seg++; t = 0;
+      if (seg >= pts.length - 1){ stopFly(); ml3d.map.easeTo({ pitch:58, zoom:15.5, duration:1200 }); return; }
+    }
+    const p = [a[0] + (b[0]-a[0]) * Math.min(t,1), a[1] + (b[1]-a[1]) * Math.min(t,1)];
+    const tgtB = Math.atan2((b[0]-a[0]) * 0.758, (b[1]-a[1])) * 180 / Math.PI;
+    let diff = ((tgtB - curB + 540) % 360) - 180;
+    curB += diff * 0.06;
+    ml3d.map.jumpTo({ center:p, bearing:curB, pitch: ml3d.fpv ? 72 : 58, zoom: ml3d.fpv ? 17.8 : 16.6 });
+    ml3d.req = requestAnimationFrame(frame);
+  }
+  ml3d.req = requestAnimationFrame(frame);
+}
+
+document.getElementById('btn3d').addEventListener('click', () => { ml3d.open ? close3d() : open3d(); });
+document.getElementById('d3-close').addEventListener('click', close3d);
+document.getElementById('d3-play').addEventListener('click', () => { ml3d.flying ? stopFly() : startFly(); });
+document.getElementById('d3-view').addEventListener('click', function(){
+  ml3d.fpv = !ml3d.fpv;
+  this.textContent = ml3d.fpv ? '시점: 1인칭' : '시점: 부감';
+  if (ml3d.map && !ml3d.flying) ml3d.map.easeTo({ pitch: ml3d.fpv ? 72 : 58, zoom: ml3d.fpv ? 17.8 : 16.2, duration:700 });
+});
 
 /* 데스크톱 편의: ←/→ 로 날짜 이동, ↑/↓ 로 스팟 이동 */
 document.addEventListener('keydown', (e) => {
