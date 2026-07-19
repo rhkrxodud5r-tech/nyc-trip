@@ -298,11 +298,12 @@
   #d3-controls button {
     border:1px solid var(--line); background:rgba(10,12,16,.9); color:#fff;
     -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    font-size:12.5px; font-weight:700; padding:10px 16px; border-radius:999px; cursor:pointer;
-    box-shadow:var(--shadow);
+    font-size:11.5px; font-weight:700; padding:9px 13px; border-radius:999px; cursor:pointer;
+    box-shadow:var(--shadow); white-space:nowrap; line-height:1;
   }
   #d3-controls button.primary { background:var(--acc-grad); border-color:transparent; }
   .ml-marker { cursor:pointer; }
+  body.mode3d .leaflet-control-container { display:none; } /* 3D 모드에서 밑에 비치는 2D 컨트롤 숨김 */
 
   #park-btn {
     position:fixed; left:14px; bottom:calc(124px + env(safe-area-inset-bottom)); z-index:1000;
@@ -422,9 +423,9 @@
 <button id="btn3d" title="3D 보기" aria-label="3D 보기">3D</button>
 <div id="map3d"></div>
 <div id="d3-controls">
-  <button id="d3-play" class="primary">▶ 경로 따라가기</button>
-  <button id="d3-view">시점: 부감</button>
-  <button id="d3-close">✕ 닫기</button>
+  <button id="d3-play" class="primary">▶ 따라가기</button>
+  <button id="d3-view">부감</button>
+  <button id="d3-close">✕</button>
 </div>
 <button id="park-btn" title="센트럴파크 명소 핀" aria-label="센트럴파크 명소 핀">🌳</button>
 <button id="crowd-btn" title="혼잡도 표시" aria-label="혼잡도 표시">
@@ -754,7 +755,7 @@ const pickerWrap = document.getElementById('picker-wrap');
 const hdTitle = document.getElementById('hd-title');
 const hdSub = document.getElementById('hd-sub');
 
-let markers = [], rows = [];
+let markers = [], rows = [], dayRouteLines = [];
 let currentIndex = 0, settleTimer = null, programmaticScroll = false;
 let curDay = null;
 
@@ -821,16 +822,14 @@ function selectDay(i){
     markers.push(m);
   });
 
-  for (let k=0; k<day.stops.length-1; k++){
-    let prev = day.stops[k].coord;
-    for (const leg of segLegs(day.modes[k])){
-      const end = leg.to || day.stops[k+1].coord;
-      const meta = MODE_META[leg.mode] || MODE_META.walk;
-      L.polyline([prev, end], { color:'#ffffff', weight: meta.weight+4, opacity:0.9 }).addTo(dayLayer);
-      L.polyline([prev, end], { color: meta.color, weight: meta.weight, opacity:1, dashArray: meta.dash }).addTo(dayLayer);
-      prev = end;
-    }
+  dayRouteLines = [];
+  for (const l of dayLegs(day)){
+    const meta = MODE_META[l.mode] || MODE_META.walk;
+    const casing = L.polyline([l.a, l.b], { color:'#ffffff', weight: meta.weight+4, opacity:0.9 }).addTo(dayLayer);
+    const line = L.polyline([l.a, l.b], { color: meta.color, weight: meta.weight, opacity:1, dashArray: meta.dash }).addTo(dayLayer);
+    dayRouteLines.push([casing, line]);
   }
+  enhanceRoutes(); /* 실제 도로 경로로 비동기 교체 (캐시 시 즉시) */
 
   map.fitBounds(L.latLngBounds(day.stops.map(s=>s.coord)), { padding:[30,30] });
 
@@ -1459,6 +1458,61 @@ document.getElementById('tm-car').addEventListener('click', () => setTransportMo
 document.getElementById('tm-transit').addEventListener('click', () => setTransportMode('transit'));
 
 /* ============================================================
+   실제 도로 경로 — FOSSGIS OSRM (OSM 공식 라우팅, 무료·키 불필요)
+   도보 = 보행자 경로, 차량·버스 = 차도 경로, 지하철 = 직선(지하 구간)
+   결과는 localStorage 캐시 → 재접속 시 즉시, 실패 시 직선 폴백
+   ============================================================ */
+let RGC = {};
+try { RGC = JSON.parse(localStorage.getItem('nycGeomV2')) || {}; } catch(e){}
+function saveRGC(){ try { localStorage.setItem('nycGeomV2', JSON.stringify(RGC)); } catch(e){} }
+function legProfile(mode){
+  if (mode === 'walk') return 'routed-foot';
+  if (mode === 'uber' || mode === 'bus') return 'routed-car';
+  return null; /* subway */
+}
+async function legGeom(a, b, mode){
+  const prof = legProfile(mode);
+  if (!prof) return null;
+  const k = prof + ':' + a[0].toFixed(5) + ',' + a[1].toFixed(5) + '|' + b[0].toFixed(5) + ',' + b[1].toFixed(5);
+  if (RGC[k]) return RGC[k];
+  try {
+    const r = await fetch(`https://routing.openstreetmap.de/${prof}/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`);
+    const j = await r.json();
+    if (!j.routes || !j.routes[0]) return null;
+    const pts = j.routes[0].geometry.coordinates.map(c => [Math.round(c[1]*1e5)/1e5, Math.round(c[0]*1e5)/1e5]);
+    RGC[k] = pts; saveRGC();
+    return pts;
+  } catch(e){ return null; }
+}
+/* 하루치 이동 구간 목록 (듀얼모드 경유점 포함): {a:[lat,lng], b:[lat,lng], mode} */
+function dayLegs(day){
+  const out = [];
+  for (let k = 0; k < day.stops.length - 1; k++){
+    let prev = day.stops[k].coord;
+    for (const leg of segLegs(day.modes[k])){
+      const end = leg.to || day.stops[k+1].coord;
+      out.push({ a:prev, b:end, mode:leg.mode });
+      prev = end;
+    }
+  }
+  return out;
+}
+let routeToken = 0;
+async function enhanceRoutes(){
+  const tok = ++routeToken, day = DAYS[curDay];
+  if (!day.stops.length) return;
+  const legs = dayLegs(day);
+  const geoms = await Promise.all(legs.map(l => legGeom(l.a, l.b, l.mode)));
+  if (tok !== routeToken) return; /* 날짜·이동모드가 바뀌었으면 폐기 */
+  day._geoms = geoms;
+  day._geomsMode = transportMode;
+  geoms.forEach((g, i) => {
+    if (g && dayRouteLines[i]){ dayRouteLines[i][0].setLatLngs(g); dayRouteLines[i][1].setLatLngs(g); }
+  });
+  if (ml3d.open && ml3d.map && ml3d.map.getSource('route')) ml3d.map.getSource('route').setData(routeFC(day));
+}
+
+/* ============================================================
    3D 보기 — MapLibre GL + OpenFreeMap (무료·키 불필요, 버튼 클릭 시 지연 로드)
    ============================================================ */
 const ml3d = { map:null, libLoaded:false, open:false, flying:false, req:null, fpv:false, markers:[] };
@@ -1476,20 +1530,29 @@ function loadMapLibre(cb){
   document.body.appendChild(s);
 }
 
-/* 현재 날짜의 전체 경로 좌표([lng,lat])와 구간별 이동수단 — 듀얼모드 경유점 포함 */
+/* 현재 날짜의 전체 경로 좌표([lng,lat])와 점 간 이동수단 — 실경로 geometry 반영 */
 function path3d(day){
+  const legs = dayLegs(day);
+  const geoms = (day._geomsMode === transportMode) ? day._geoms : null;
   const pts = [], legModes = [];
-  for (let k = 0; k < day.stops.length - 1; k++){
-    let prev = day.stops[k].coord;
-    if (k === 0) pts.push([prev[1], prev[0]]);
-    for (const leg of segLegs(day.modes[k])){
-      const end = leg.to || day.stops[k+1].coord;
-      pts.push([end[1], end[0]]);
-      legModes.push(leg.mode);
-      prev = end;
-    }
-  }
+  legs.forEach((l, i) => {
+    const g = (geoms && geoms[i]) ? geoms[i] : [l.a, l.b];
+    const arr = g.map(p => [p[1], p[0]]);
+    if (!pts.length) pts.push(arr[0]);
+    for (let j = 1; j < arr.length; j++){ pts.push(arr[j]); legModes.push(l.mode); }
+  });
   return { pts, legModes };
+}
+/* 경로 GeoJSON (2D/3D 공용 데이터) */
+function routeFC(day){
+  const legs = dayLegs(day);
+  const geoms = (day._geomsMode === transportMode) ? day._geoms : null;
+  return { type:'FeatureCollection', features: legs.map((l, i) => {
+    const g = (geoms && geoms[i]) ? geoms[i] : [l.a, l.b];
+    return { type:'Feature',
+      properties:{ color:(MODE_META[l.mode] || MODE_META.walk).color },
+      geometry:{ type:'LineString', coordinates: g.map(p => [p[1], p[0]]) } };
+  }) };
 }
 
 function ensure3dBuildings(){
@@ -1518,18 +1581,7 @@ function draw3dRoute(){
   if (m.getLayer('route-casing')) m.removeLayer('route-casing');
   if (m.getSource('route')) m.removeSource('route');
 
-  const features = [];
-  for (let k = 0; k < day.stops.length - 1; k++){
-    let prev = day.stops[k].coord;
-    for (const leg of segLegs(day.modes[k])){
-      const end = leg.to || day.stops[k+1].coord;
-      features.push({ type:'Feature',
-        properties:{ color:(MODE_META[leg.mode] || MODE_META.walk).color },
-        geometry:{ type:'LineString', coordinates:[[prev[1], prev[0]], [end[1], end[0]]] } });
-      prev = end;
-    }
-  }
-  m.addSource('route', { type:'geojson', data:{ type:'FeatureCollection', features } });
+  m.addSource('route', { type:'geojson', data:routeFC(day) });
   m.addLayer({ id:'route-casing', type:'line', source:'route',
     layout:{ 'line-cap':'round', 'line-join':'round' },
     paint:{ 'line-color':'#ffffff', 'line-width':8, 'line-opacity':0.9 } });
@@ -1562,7 +1614,8 @@ function open3d(){
       ml3d.map = new maplibregl.Map({
         container:'map3d',
         style:'https://tiles.openfreemap.org/styles/liberty',
-        center:[start[1], start[0]], zoom:15.5, pitch:58, bearing:-17
+        center:[start[1], start[0]], zoom:15.5, pitch:58, bearing:-17,
+        maxPitch:85 /* 기본 60° 제한 해제 — 1인칭 시점용 */
       });
       ml3d.map.on('load', () => { ensure3dBuildings(); draw3dRoute(); });
     } else {
@@ -1609,7 +1662,7 @@ function startFly(){
     const tgtB = Math.atan2((b[0]-a[0]) * 0.758, (b[1]-a[1])) * 180 / Math.PI;
     let diff = ((tgtB - curB + 540) % 360) - 180;
     curB += diff * 0.06;
-    ml3d.map.jumpTo({ center:p, bearing:curB, pitch: ml3d.fpv ? 72 : 58, zoom: ml3d.fpv ? 17.8 : 16.6 });
+    ml3d.map.jumpTo({ center:p, bearing:curB, pitch: ml3d.fpv ? 76 : 58, zoom: ml3d.fpv ? 18.2 : 16.6 });
     ml3d.req = requestAnimationFrame(frame);
   }
   ml3d.req = requestAnimationFrame(frame);
@@ -1620,8 +1673,8 @@ document.getElementById('d3-close').addEventListener('click', close3d);
 document.getElementById('d3-play').addEventListener('click', () => { ml3d.flying ? stopFly() : startFly(); });
 document.getElementById('d3-view').addEventListener('click', function(){
   ml3d.fpv = !ml3d.fpv;
-  this.textContent = ml3d.fpv ? '시점: 1인칭' : '시점: 부감';
-  if (ml3d.map && !ml3d.flying) ml3d.map.easeTo({ pitch: ml3d.fpv ? 72 : 58, zoom: ml3d.fpv ? 17.8 : 16.2, duration:700 });
+  this.textContent = ml3d.fpv ? '1인칭' : '부감';
+  if (ml3d.map && !ml3d.flying) ml3d.map.easeTo({ pitch: ml3d.fpv ? 78 : 58, zoom: ml3d.fpv ? 18.2 : 16.2, duration:700 });
 });
 
 /* 데스크톱 편의: ←/→ 로 날짜 이동, ↑/↓ 로 스팟 이동 */
