@@ -246,6 +246,7 @@
   }
   .pbtn:active { filter:brightness(.92); transform:scale(.97); }
   .pbtn.spend { background:var(--acc-grad); color:#fff; flex-basis:100%; }
+  .pbtn.nav { background:#dbe6fb; color:#1f4fa8; }
   .cat-tag { font-size:10px; background:#eef2f8; color:#5b6572; border-radius:999px; padding:1px 7px; margin-left:5px; }
   .popup-row.spent { color:#1d7a3c; font-weight:700; }
 
@@ -287,21 +288,74 @@
     position:fixed; left:0; right:0; bottom:0; top:calc(88px + env(safe-area-inset-top, 0px));
     z-index:900; display:none; background:#e8e6e1;
   }
+  /* 3D에서도 스팟 목록은 살려둔다 — 지금 어디를 보고 있는지 알아야 길이 보인다 */
   body.mode3d #gps-btn, body.mode3d #crowd-btn, body.mode3d #park-btn,
-  body.mode3d #picker-wrap, body.mode3d #picker-label,
   body.mode3d #island, body.mode3d #island-card, body.mode3d #day-summary { display:none !important; }
   #d3-controls {
     position:fixed; left:50%; transform:translateX(-50%);
-    bottom:calc(20px + env(safe-area-inset-bottom)); z-index:1600; display:none; gap:8px;
+    bottom:calc(20px + env(safe-area-inset-bottom)); z-index:1600; display:none; gap:8px; align-items:center;
   }
-  body.mode3d #d3-controls { display:flex; }
+  /* 우하단 스팟 피커와 겹치지 않도록 3D 조작부는 좌하단 세로 스택으로 */
+  body.mode3d #d3-controls {
+    display:flex; flex-direction:column; align-items:flex-start;
+    left:14px; transform:none; bottom:calc(16px + env(safe-area-inset-bottom));
+  }
   #d3-controls button {
     border:1px solid var(--line); background:rgba(10,12,16,.9); color:#fff;
     -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    font-size:11.5px; font-weight:700; padding:9px 13px; border-radius:999px; cursor:pointer;
+    font-size:12px; font-weight:700; padding:11px 16px; border-radius:999px; cursor:pointer;
     box-shadow:var(--shadow); white-space:nowrap; line-height:1;
+    transition:background .18s, color .18s, transform .12s;
   }
+  #d3-controls button:active { transform:scale(.96); }
   #d3-controls button.primary { background:var(--acc-grad); border-color:transparent; }
+  /* 1인칭: 켜짐/꺼짐이 색으로 드러나는 단일 토글 — 상태 표기 혼동 제거 */
+  #d3-fpv::before {
+    content:''; width:7px; height:7px; border-radius:50%; background:#5c6675;
+    display:inline-block; margin-right:7px; vertical-align:middle; transition:background .18s, box-shadow .18s;
+  }
+  #d3-fpv.on { background:var(--acc-grad); border-color:transparent; }
+  #d3-fpv.on::before { background:#fff; box-shadow:0 0 7px rgba(255,255,255,.85); }
+
+  /* 3D 종료: 하단 중앙에서 분리 — 파괴적 동작을 주요 조작 옆에 두지 않음 */
+  #d3-exit {
+    position:fixed; z-index:1600; display:none;
+    top:calc(96px + env(safe-area-inset-top, 0px)); right:10px;
+    width:38px; height:38px; border-radius:50%; cursor:pointer;
+    border:1px solid var(--line); background:rgba(10,12,16,.9); color:#fff;
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    font-size:15px; line-height:1; box-shadow:var(--shadow);
+    align-items:center; justify-content:center; transition:transform .12s;
+  }
+  body.mode3d #d3-exit { display:flex; }
+  #d3-exit:active { transform:scale(.94); }
+
+  /* 조작 힌트 (3D 첫 진입 시 1회) */
+  #d3-hint {
+    position:fixed; z-index:1600; display:none;
+    left:50%; transform:translateX(-50%);
+    bottom:calc(76px + env(safe-area-inset-bottom));
+    max-width:min(90vw,420px); text-align:center;
+    background:rgba(10,12,16,.92); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    color:#e8ecf2; font-size:11.5px; line-height:1.6; font-weight:600;
+    padding:10px 15px; border-radius:14px; border:1px solid var(--line); box-shadow:var(--shadow);
+    transition:opacity .45s;
+  }
+  #d3-hint kbd {
+    background:rgba(255,255,255,.12); border-radius:5px; padding:1.5px 5px;
+    font-family:inherit; font-size:10.5px; font-weight:700; margin:0 1px;
+  }
+  /* MapLibre 기본 컨트롤을 앱 톤에 맞춤 (컴퍼스 = 회전·기울기 시각화) */
+  #map3d .maplibregl-ctrl-group {
+    background:rgba(10,12,16,.9); border:1px solid var(--line);
+    box-shadow:var(--shadow); border-radius:12px; overflow:hidden;
+  }
+  #map3d .maplibregl-ctrl-group button + button { border-top:1px solid var(--line); }
+  #map3d .maplibregl-ctrl-group button span { filter:invert(1) brightness(1.9); }
+  #map3d .maplibregl-ctrl-bottom-right, #map3d .maplibregl-ctrl-bottom-left { display:none; }
+  /* 우상단에 종료(✕) → 차량/대중교통 토글 → 컴퍼스 순으로 겹치지 않게 내려 배치 */
+  #map3d .maplibregl-ctrl-top-right { margin-top:96px; }
+  body.mode3d #tmode { top:calc(140px + env(safe-area-inset-top, 0px)); }
   .ml-marker { cursor:pointer; }
   body.mode3d .leaflet-control-container { display:none; } /* 3D 모드에서 밑에 비치는 2D 컨트롤 숨김 */
 
@@ -384,6 +438,287 @@
   #expense-card th { color:#9aa3b2; font-weight:600; }
   .em-total td { font-weight:800; color:#fff; border-top:2px solid #3a4657; }
   #em-close { margin-top:14px; width:100%; padding:11px; border-radius:10px; border:none; background:#1d232e; color:#9aa3b2; font-weight:700; cursor:pointer; font-family:inherit; }
+
+  /* ============================================================
+     UI v2 — 도구 레일 / 길찾기 시트 / 접이식 피커 / 이벤트
+     ============================================================ */
+
+  /* ---- 좌하단 도구 레일: 아이콘만으로는 기능을 알 수 없어 라벨 부여 ---- */
+  #tools {
+    position:fixed; left:12px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:1000;
+    display:flex; flex-direction:column-reverse; gap:10px; align-items:center;
+  }
+  .tool { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .tool-lb {
+    font-size:9.5px; font-weight:700; color:#c8d0dc; letter-spacing:-.01em; white-space:nowrap;
+    background:rgba(10,12,16,.7); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    padding:2px 7px; border-radius:7px; line-height:1.5; transition:color .2s, background .2s;
+  }
+  /* 버튼이 켜지면 라벨도 함께 강조 — 별도 JS 동기화 없이 :has()로 처리 */
+  .tool:has(> button.on) .tool-lb { color:#fff; background:rgba(79,140,255,.32); }
+  /* 레일 안으로 들어온 버튼들의 개별 fixed 배치 해제 */
+  #tools #gps-btn, #tools #crowd-btn, #tools #park-btn, #tools #btn3d, #tools #nav-btn {
+    position:static; left:auto; bottom:auto; flex:0 0 auto;
+  }
+  #nav-btn {
+    width:46px; height:46px; border-radius:50%; border:1px solid var(--line); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    color:#fff; box-shadow:var(--shadow); transition:background .2s, transform .15s;
+  }
+  #nav-btn:active { transform:scale(.94); }
+  #nav-btn svg { width:21px; height:21px; stroke:#e6ebf2; fill:none; }
+  #nav-btn.on { background:var(--acc-grad); border-color:transparent; }
+  #nav-btn.on svg { stroke:#fff; }
+  body.mode3d #tools, body.navopen #tools { display:none !important; }
+
+  /* ---- 접이식 스크롤 피커: 지도 가림 최소화 ---- */
+  #picker-toggle {
+    position:fixed; right:14px; z-index:1001; cursor:pointer;
+    background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    color:#cfd6e0; font-size:10.5px; font-weight:700; white-space:nowrap;
+    padding:6px 11px; border-radius:999px; border:1px solid var(--line); box-shadow:var(--shadow);
+    display:none; align-items:center; gap:5px; transition:transform .15s;
+  }
+  #picker-toggle:active { transform:scale(.95); }
+  #picker-toggle .pt-chev { transition:transform .28s; display:inline-block; }
+  body.pickerhid #picker-toggle .pt-chev { transform:rotate(180deg); }
+  body.pickerhid #picker-wrap, body.pickerhid #picker-label { display:none !important; }
+  body.navopen #picker-wrap, body.navopen #picker-label, body.navopen #picker-toggle { display:none !important; }
+  body.navopen #day-summary, body.navopen #tmode, body.navopen #island, body.navopen #island-card { display:none !important; }
+
+  /* ---- 길찾기 바텀시트 ---- */
+  #nav-sheet {
+    position:fixed; left:0; right:0; bottom:0; z-index:1500;
+    background:var(--panel-solid); color:#fff; border-radius:20px 20px 0 0;
+    border-top:1px solid var(--line); box-shadow:0 -10px 40px rgba(0,0,0,.55);
+    transform:translateY(110%); transition:transform .32s cubic-bezier(.32,.72,.25,1);
+    max-height:min(74vh, 560px); display:flex; flex-direction:column;
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+  }
+  #nav-sheet.open { transform:translateY(0); }
+  #nav-sheet::before {
+    content:''; display:block; width:36px; height:4px; border-radius:2px; flex:0 0 auto;
+    background:rgba(255,255,255,.18); margin:10px auto 8px;
+  }
+  .nv-head { padding:2px 16px 0; flex:0 0 auto; display:flex; align-items:flex-start; gap:10px; }
+  .nv-route { flex:1; min-width:0; }
+  .nv-pt { display:flex; align-items:center; gap:9px; font-size:13px; line-height:1.5; padding:3px 0; }
+  .nv-pt .nv-dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  .nv-pt.from .nv-dot { background:#8a94a4; }
+  .nv-pt.to .nv-dot { background:var(--acc); box-shadow:0 0 0 3px rgba(79,140,255,.22); }
+  .nv-pt .nv-nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+  .nv-pt .nv-tag { font-size:10px; color:var(--sub); font-weight:600; flex:0 0 auto; }
+  .nv-rail { width:9px; display:flex; justify-content:center; }
+  .nv-rail i { display:block; width:2px; height:11px; background:rgba(255,255,255,.16); border-radius:1px; }
+  #nv-close {
+    flex:0 0 auto; width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
+    background:#1d232e; color:#9aa3b2; font-size:14px; cursor:pointer; font-family:inherit; line-height:1;
+  }
+  #nv-swap {
+    flex:0 0 auto; width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
+    background:#1d232e; color:#9aa3b2; font-size:13px; cursor:pointer; font-family:inherit; line-height:1;
+  }
+  .nv-modes { display:flex; gap:7px; padding:12px 16px 0; flex:0 0 auto; }
+  .nv-modes button {
+    flex:1; padding:9px 6px; border-radius:11px; border:1px solid #2c3442; background:#1d232e;
+    color:#9aa3b2; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:3px; transition:background .18s, color .18s;
+  }
+  .nv-modes button.sel { background:var(--acc-grad); color:#fff; border-color:transparent; }
+  .nv-modes .nv-m-sub { font-size:9.5px; font-weight:600; opacity:.8; }
+  .nv-sum {
+    padding:12px 16px 10px; flex:0 0 auto; display:flex; align-items:baseline; gap:9px;
+    border-bottom:1px solid var(--line);
+  }
+  .nv-sum .nv-dur { font-size:21px; font-weight:800; letter-spacing:-.02em; }
+  .nv-sum .nv-dist { font-size:12.5px; color:var(--sub); font-weight:600; }
+  .nv-sum .nv-hint { font-size:10.5px; color:var(--sub); margin-left:auto; text-align:right; line-height:1.4; }
+  #nv-steps { overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px 0 10px; flex:1 1 auto; }
+  .nv-step {
+    display:flex; align-items:flex-start; gap:11px; padding:10px 16px; cursor:pointer;
+    border-bottom:1px solid rgba(255,255,255,.04); transition:background .15s;
+  }
+  .nv-step:active, .nv-step.sel { background:rgba(79,140,255,.13); }
+  .nv-step .nv-ic {
+    width:26px; height:26px; border-radius:8px; background:#232a36; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:13px; line-height:1;
+  }
+  .nv-step .nv-tx { flex:1; min-width:0; font-size:12.5px; line-height:1.5; }
+  .nv-step .nv-rd { color:#fff; font-weight:600; }
+  .nv-step .nv-dm { color:var(--sub); font-size:11px; margin-top:1px; }
+  .nv-msg { padding:22px 18px; text-align:center; color:var(--sub); font-size:12.5px; line-height:1.65; }
+  .nv-msg .nv-big { display:block; font-size:13.5px; color:#e8ecf2; font-weight:700; margin-bottom:6px; }
+  .nv-gm {
+    display:block; margin:12px 16px 6px; padding:12px; border-radius:12px; text-align:center;
+    background:var(--acc-grad); color:#fff; font-size:13px; font-weight:700;
+    text-decoration:none; font-family:inherit; border:none; cursor:pointer; width:calc(100% - 32px);
+  }
+  .nv-spin {
+    width:17px; height:17px; border-radius:50%; margin:0 auto 10px;
+    border:2px solid rgba(255,255,255,.16); border-top-color:var(--acc);
+    animation:nvspin .7s linear infinite;
+  }
+  @keyframes nvspin { to { transform:rotate(360deg); } }
+  /* 길찾기 경로 위 출발·도착 마커 */
+  .nv-pin {
+    width:16px; height:16px; border-radius:50%; border:3px solid #fff;
+    box-shadow:0 2px 8px rgba(0,0,0,.5);
+  }
+  .nv-pin.a { background:#8a94a4; }
+  .nv-pin.b { background:var(--acc); }
+
+  /* ---- 이벤트 (도로통제·퍼레이드) ---- */
+  .ovl {
+    position:fixed; inset:0; z-index:2100; background:rgba(0,0,0,.55);
+    display:none; align-items:center; justify-content:center;
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+  }
+  #ev-card {
+    width:min(92vw,430px); max-height:80vh; overflow-y:auto;
+    background:var(--panel-solid); color:#fff; border-radius:20px; padding:18px;
+    border:1px solid var(--line); box-shadow:var(--shadow);
+    animation:cardIn .28s cubic-bezier(.32,.72,.25,1);
+  }
+  #ev-card h2 { font-size:15px; margin:0 0 12px; color:var(--acc); }
+  #ev-close {
+    margin-top:14px; width:100%; padding:11px; border-radius:10px; border:none;
+    background:#1d232e; color:#9aa3b2; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  #ev-card h4 { font-size:12.5px; margin:14px 0 6px; color:#9aa3b2; }
+  .ev-item {
+    padding:11px 12px; border-radius:12px; background:#1b212b; margin-bottom:8px;
+    border:1px solid var(--line); font-size:12px; line-height:1.55;
+  }
+  .ev-item .ev-nm { font-weight:700; font-size:13px; margin-bottom:3px; }
+  .ev-item .ev-meta { color:var(--sub); font-size:11px; }
+  .ev-item .ev-loc { color:#c3cbd8; font-size:11px; margin-top:5px; line-height:1.5; }
+  .ev-badge {
+    display:inline-block; font-size:9.5px; font-weight:700; border-radius:999px;
+    padding:2px 7px; margin-left:6px; vertical-align:middle;
+  }
+  .ev-badge.full { background:#3a2026; color:#e0574c; }
+  .ev-badge.part { background:#3a3320; color:#d9a514; }
+  .ev-gm { display:inline-block; margin-top:8px; font-size:11px; font-weight:700; color:var(--acc); text-decoration:none; }
+
+  /* ---- 오프라인 표시: 저장된 값을 최신인 척 보여주지 않기 위한 최소 장치 ---- */
+  #offline-chip {
+    position:fixed; z-index:1002; display:none; white-space:nowrap;
+    top:calc(96px + env(safe-area-inset-top, 0px)); left:50%; transform:translateX(-50%);
+    background:rgba(58,51,32,.94); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    color:#f0d98a; font-size:11px; font-weight:700;
+    padding:7px 13px; border-radius:999px; border:1px solid rgba(217,165,20,.4); box-shadow:var(--shadow);
+  }
+
+  /* ============================================================
+     작전 브리핑 (Mission Briefing) — 여행 전체를 한 화면에서 감시하는 지휘 콘솔
+     Palantir식 상황 인식: 신호를 밀도 있게, 상태는 색으로
+     ============================================================ */
+  :root {
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --ok:#2fd07a; --warn:#f0b429; --crit:#f0574c;
+    --grid:rgba(120,150,200,.06);
+  }
+  #hd-brief {
+    border:1px solid rgba(79,140,255,.5); background:rgba(79,140,255,.14); color:#cfe0ff;
+    font-size:11.5px; font-weight:700; padding:7px 12px; border-radius:999px; cursor:pointer;
+    font-family:inherit; letter-spacing:.02em; transition:background .2s; white-space:nowrap;
+    display:flex; align-items:center; gap:6px;
+  }
+  #hd-brief::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--ok); box-shadow:0 0 7px var(--ok); }
+  #hd-brief:active { background:rgba(79,140,255,.26); }
+
+  #brief-modal {
+    position:fixed; inset:0; z-index:2200; background:rgba(6,9,14,.72);
+    display:none; align-items:flex-start; justify-content:center;
+    -webkit-backdrop-filter:blur(7px); backdrop-filter:blur(7px);
+    overflow-y:auto; padding:calc(46px + env(safe-area-inset-top,0px)) 12px 40px;
+  }
+  #brief-card {
+    width:min(96vw, 460px); color:var(--txt);
+    background:
+      linear-gradient(rgba(120,150,200,.05) 1px, transparent 1px) 0 0/100% 26px,
+      #0d1219;
+    border:1px solid rgba(90,120,170,.22); border-radius:18px; overflow:hidden;
+    box-shadow:0 24px 70px rgba(0,0,0,.6);
+    animation:cardIn .3s cubic-bezier(.32,.72,.25,1);
+  }
+  .bf-top {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:14px 16px 12px; border-bottom:1px solid rgba(90,120,170,.2);
+    background:linear-gradient(180deg, rgba(79,140,255,.1), transparent);
+  }
+  .bf-top h2 { margin:0; font-size:14px; font-weight:800; letter-spacing:.04em; display:flex; align-items:center; gap:9px; }
+  .bf-live { font-family:var(--mono); font-size:9.5px; color:var(--ok); letter-spacing:.08em;
+    border:1px solid rgba(47,208,122,.4); border-radius:5px; padding:2px 6px; }
+  #bf-close { width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
+    background:#161d28; color:#9aa3b2; font-size:15px; cursor:pointer; font-family:inherit; flex:0 0 auto; }
+
+  /* 미션 클럭 — 가장 큰 신호 */
+  .bf-clock { padding:16px; display:flex; align-items:center; gap:14px; border-bottom:1px solid var(--grid); }
+  .bf-dday { font-family:var(--mono); font-size:34px; font-weight:800; line-height:1; letter-spacing:-.01em; color:#eaf1ff; }
+  .bf-dday small { font-size:13px; color:var(--sub); font-weight:600; margin-left:2px; }
+  .bf-clock-r { flex:1; min-width:0; font-size:11.5px; line-height:1.5; color:var(--sub); }
+  .bf-clock-r b { color:#dbe6f5; font-weight:700; }
+  .bf-phase { display:inline-block; font-family:var(--mono); font-size:9.5px; letter-spacing:.06em;
+    padding:2px 7px; border-radius:5px; margin-bottom:5px; }
+  .bf-phase.before { background:rgba(79,140,255,.16); color:#8fb6ff; border:1px solid rgba(79,140,255,.35); }
+  .bf-phase.during { background:rgba(47,208,122,.14); color:var(--ok); border:1px solid rgba(47,208,122,.4); }
+  .bf-phase.after  { background:rgba(152,162,179,.14); color:var(--sub); border:1px solid var(--line); }
+
+  .bf-sec { padding:13px 16px; border-bottom:1px solid var(--grid); }
+  .bf-sec:last-child { border-bottom:none; }
+  .bf-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .bf-h .bf-lb { font-size:11px; font-weight:800; color:#c6d2e2; letter-spacing:.01em; }
+  .bf-h .bf-code { font-family:var(--mono); font-size:8.5px; letter-spacing:.14em; color:#5b6b82; }
+
+  /* 다음 예약 — 카운트다운 */
+  .bf-next { display:flex; gap:12px; align-items:center;
+    background:rgba(79,140,255,.08); border:1px solid rgba(79,140,255,.24); border-radius:12px; padding:12px; }
+  .bf-next .bf-next-l { flex:1; min-width:0; }
+  .bf-next .bf-nm { font-size:14px; font-weight:800; letter-spacing:-.01em; margin-bottom:3px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bf-next .bf-meta { font-size:11px; color:var(--sub); line-height:1.5; }
+  .bf-cd { font-family:var(--mono); font-size:15px; font-weight:700; color:#8fb6ff; text-align:right; white-space:nowrap; flex:0 0 auto; }
+  .bf-cd small { display:block; font-size:8.5px; color:var(--sub); letter-spacing:.1em; margin-bottom:2px; }
+
+  /* 예약 타임라인 */
+  .bf-rv { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--grid); }
+  .bf-rv:last-child { border-bottom:none; }
+  .bf-rv .bf-st { font-family:var(--mono); font-size:9.5px; font-weight:700; padding:3px 7px; border-radius:6px; flex:0 0 auto; letter-spacing:.03em; }
+  .bf-rv .bf-st.ok { background:rgba(47,208,122,.14); color:var(--ok); }
+  .bf-rv .bf-st.wait { background:rgba(240,180,41,.15); color:var(--warn); }
+  .bf-rv .bf-rv-m { flex:1; min-width:0; }
+  .bf-rv .bf-rv-nm { font-size:12.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bf-rv .bf-rv-sub { font-size:10.5px; color:var(--sub); font-family:var(--mono); }
+  .bf-rv a.bf-rv-go { font-size:10.5px; font-weight:700; color:var(--acc); text-decoration:none; flex:0 0 auto; }
+
+  /* 예산 — 번율 게이지 */
+  .bf-bud-row { display:flex; justify-content:space-between; font-size:12px; margin:4px 0; }
+  .bf-bud-row .bf-k { color:var(--sub); }
+  .bf-bud-row .bf-v { font-family:var(--mono); font-weight:700; color:#e6edf7; }
+  .bf-gauge { height:8px; border-radius:5px; background:#1b2431; overflow:hidden; margin:9px 0 6px; border:1px solid var(--line); }
+  .bf-gauge > span { display:block; height:100%; border-radius:5px 0 0 5px;
+    background:linear-gradient(90deg,#3f7bf0,#5fd0a0); transition:width .6s; }
+  .bf-gauge.over > span { background:linear-gradient(90deg,#f0b429,#f0574c); }
+  .bf-bud-note { font-size:10px; color:var(--sub); font-family:var(--mono); letter-spacing:.02em; }
+
+  /* 환경 스트립 */
+  .bf-env { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .bf-env .bf-cell { background:#121a25; border:1px solid var(--line); border-radius:10px; padding:9px 11px; }
+  .bf-env .bf-cell .bf-cl { font-size:9.5px; color:var(--sub); letter-spacing:.03em; margin-bottom:3px; }
+  .bf-env .bf-cell .bf-cv { font-family:var(--mono); font-size:14px; font-weight:700; color:#e6edf7; }
+  .bf-env .bf-cell .bf-cv small { font-family:inherit; font-size:11px; color:var(--sub); font-weight:400; }
+
+  /* 경보 */
+  .bf-alert { display:flex; align-items:flex-start; gap:9px; font-size:11.5px; line-height:1.5; padding:6px 0; }
+  .bf-alert .bf-dot { width:7px; height:7px; border-radius:50%; margin-top:5px; flex:0 0 auto; }
+  .bf-alert.crit .bf-dot { background:var(--crit); box-shadow:0 0 6px var(--crit); }
+  .bf-alert.warn .bf-dot { background:var(--warn); }
+  .bf-alert.ok .bf-dot   { background:var(--ok); }
+  .bf-alert .bf-at { flex:1; color:#d3dcea; }
+  .bf-alert .bf-at b { color:#fff; }
+  .bf-jump { color:var(--acc); font-weight:700; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -400,9 +735,17 @@
         <path d="M20 4v7h-7"/>
       </svg>
     </button>
-    <button id="hd-expense">지출 현황</button>
+    <button id="hd-brief" title="작전 브리핑">브리핑</button>
   </div>
 </header>
+
+<div id="brief-modal"><div id="brief-card">
+  <div class="bf-top">
+    <h2>작전 브리핑 <span class="bf-live" id="bf-live">● LIVE</span></h2>
+    <button id="bf-close" title="닫기" aria-label="닫기">✕</button>
+  </div>
+  <div id="bf-body"></div>
+</div></div>
 
 <div id="day-modal"><div id="day-card">
   <h2>날짜 선택</h2>
@@ -420,29 +763,71 @@
 <div id="island"><span id="isl-fx" class="isl-dim">₩ —</span><span class="isl-div"></span><span id="isl-wx" class="isl-dim">—°</span></div>
 <div id="island-card"></div>
 <div id="crowd-toast"></div>
-<button id="btn3d" title="3D 보기" aria-label="3D 보기">3D</button>
+<div id="offline-chip">오프라인 · 저장된 정보를 표시 중입니다</div>
 <div id="map3d"></div>
 <div id="d3-controls">
   <button id="d3-play" class="primary">▶ 따라가기</button>
-  <button id="d3-view">부감</button>
-  <button id="d3-close">✕</button>
+  <button id="d3-fpv">1인칭</button>
+  <button id="d3-all">경로 전체</button>
 </div>
-<button id="park-btn" title="센트럴파크 명소 핀" aria-label="센트럴파크 명소 핀">🌳</button>
-<button id="crowd-btn" title="혼잡도 표시" aria-label="혼잡도 표시">
+<button id="d3-exit" title="3D 종료" aria-label="3D 종료">✕</button>
+<div id="d3-hint"></div>
+
+<div id="tools">
+<div class="tool" id="tool-gps"><button id="gps-btn" title="내 위치 표시" aria-label="내 위치 표시">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="3.2"/>
+    <path d="M12 2.5v3.2M12 18.3v3.2M21.5 12h-3.2M5.7 12H2.5"/>
+    <circle cx="12" cy="12" r="7.3"/>
+  </svg>
+</button><span class="tool-lb">내 위치</span></div>
+
+<div class="tool" id="tool-nav"><button id="nav-btn" title="길찾기" aria-label="길찾기">
+  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2.6 21.4 21 12 16.8 2.6 21z"/>
+  </svg>
+</button><span class="tool-lb">길찾기</span></div>
+
+<div class="tool" id="tool-crowd"><button id="crowd-btn" title="혼잡도 표시" aria-label="혼잡도 표시">
   <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
     <circle cx="9" cy="7" r="4"/>
     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
   </svg>
-</button>
-<button id="gps-btn" title="내 위치 표시" aria-label="내 위치 표시">
-  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
-    <circle cx="12" cy="12" r="3.2"/>
-    <path d="M12 2.5v3.2M12 18.3v3.2M21.5 12h-3.2M5.7 12H2.5"/>
-    <circle cx="12" cy="12" r="7.3"/>
-  </svg>
-</button>
+</button><span class="tool-lb">혼잡도</span></div>
+
+<div class="tool" id="tool-park"><button id="park-btn" title="센트럴파크 명소 핀" aria-label="센트럴파크 명소 핀">🌳</button><span class="tool-lb">공원 핀</span></div>
+
+<div class="tool" id="tool-3d"><button id="btn3d" title="3D 보기" aria-label="3D 보기">3D</button><span class="tool-lb">3D</span></div>
+</div>
+
+<div id="picker-toggle"><span class="pt-chev">▾</span><span id="pt-txt">스팟 목록 숨기기</span></div>
+
+<div id="nav-sheet">
+  <div class="nv-head">
+    <div class="nv-route">
+      <div class="nv-pt from"><span class="nv-dot"></span><span class="nv-nm" id="nv-from">내 위치</span><span class="nv-tag" id="nv-from-tag"></span></div>
+      <div class="nv-rail"><i></i></div>
+      <div class="nv-pt to"><span class="nv-dot"></span><span class="nv-nm" id="nv-to">목적지</span></div>
+    </div>
+    <button id="nv-swap" title="출발지·목적지 바꾸기" aria-label="출발지와 목적지 바꾸기">⇅</button>
+    <button id="nv-close" title="길찾기 닫기" aria-label="길찾기 닫기">✕</button>
+  </div>
+  <div class="nv-modes">
+    <button id="nv-m-walk"><span>🚶 도보</span><span class="nv-m-sub" id="nv-s-walk">—</span></button>
+    <button id="nv-m-car"><span>🚗 차량</span><span class="nv-m-sub" id="nv-s-car">—</span></button>
+    <button id="nv-m-transit"><span>🚇 대중교통</span><span class="nv-m-sub">구글맵</span></button>
+  </div>
+  <div class="nv-sum" id="nv-sum"></div>
+  <div id="nv-steps"></div>
+</div>
+
+<div id="ev-modal" class="ovl"><div id="ev-card">
+  <h2>가는 날 뉴욕 행사 · 도로 통제</h2>
+  <div id="ev-body"></div>
+  <button id="ev-close">닫기</button>
+</div></div>
 
 <div id="spend-sheet">
   <h3 id="ss-title"></h3>
@@ -529,16 +914,16 @@ const DAYS = [
     { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
       time:'08:30 출발', stay:'-', menu:'-', price:'차량 $16~19 / 대중교통 $6',
       note:'[기본] Uber/Lyft 12분 (Lyft $17 견적) — 브릿지 도보일이라 체력 아끼는 쪽 권장. [대안·토글] 도보 7분(Flushing Av)+G 12분+Hoyt-Schermerhorn 동일승강장 환승+A/C 5분 ≈ 30분 · $6' },
-    { type:'transit', name:'High St 역 (A·C)', coord:[40.7023,-73.9909],
+    { type:'transit', name:'High St 역 (A·C)', coord:[40.6993,-73.9899],
       time:'08:45 도착', stay:'-', menu:'-', price:'약 $17',
-      note:'2.5마일·12분 구간. 여기서부터 도보로 브루클린 브릿지 진입로까지 이동' },
-    { type:'transit', name:'브루클린 브릿지 진입', coord:[40.7038,-73.9958],
+      note:'2.5마일·12분 구간. Cadman Plaza East 출구로 나가 북쪽으로 도보' },
+    { type:'transit', name:'브루클린 브릿지 진입 (Washington St 계단)', coord:[40.7007,-73.9897],
       time:'08:45~08:53', stay:'-', menu:'-', price:'무료',
-      note:'Cadman Plaza 경유 도보 8분' },
+      note:'Cadman Plaza East를 따라 북쪽 도보 3분 → Prospect St 지하도 아래 계단으로 보행로 진입. 계단을 올라 다리 위 보행로에서 맨해튼 방향(북서)으로' },
     { type:'attraction', name:'브루클린 브릿지 도보 횡단', coord:[40.7075,-74.0015],
       time:'08:53~09:25', stay:'약 30분', menu:'-', price:'무료',
       note:'1.1마일, 사진 포함 25~35분. 평일 오전이라 주말보다 한산' },
-    { type:'transit', name:'Brooklyn Bridge-City Hall 역', coord:[40.7135,-74.0044],
+    { type:'transit', name:'Brooklyn Bridge-City Hall 역', coord:[40.7127,-74.0041],
       time:'09:25 도착', stay:'-', menu:'-', price:'-',
       note:'도보 3분 후 6호선(로컬) 탑승, 환승 없이 51 St까지' },
     { type:'transit', name:'51 St 역 (6호선)', coord:[40.7571,-73.9719],
@@ -591,7 +976,7 @@ const DAYS = [
     'walk','walk','walk','subway','walk','walk','walk','walk','walk','walk','walk','walk','walk','walk','subway','walk'],
   segs:[
     { car:'약 12분 (2.5마일) · $16~19', transit:'도보 7분(Flushing Av) + G 12분 + 환승 + A/C 5분 ≈ 30분 · $6' },
-    '8분 (Cadman Plaza 경유)','25~35분 (브릿지 횡단)','3분','6호선 22분','3분','11분','12분','2분','10분','5분','20분','18분','1~2분','5분','M열차 직행 24~27분','도보 15분 (0.7마일, 평지)'] },
+    '도보 3분 + 계단 (Cadman Plaza East → Prospect St 지하도)','25~35분 (브릿지 횡단, 맨해튼 방향)','다리 내려와 도보 3분','6호선 22분','3분','11분','12분','2분','10분','5분','20분','18분','1~2분','5분','M열차 직행 24~27분','도보 15분 (0.7마일, 평지)'] },
 
 { day:3, date:'10/8', dow:'목', title:'Day 3 · 센트럴파크+메트', sub:'피크닉·촬영 → 갤러거스 → 메트 → 나이트투어',
   stops:[
@@ -783,6 +1168,7 @@ function buildLegend(day){
 function selectDay(i){
   curDay = i;
   const day = DAYS[i];
+  if (document.body.classList.contains('navopen')) closeNav(); /* 길찾기 시트가 새 날짜 지도를 덮지 않도록 */
   hdTitle.textContent = day.title;
   hdSub.textContent = `${day.date}(${day.dow}) · ${day.sub}`;
 
@@ -802,6 +1188,7 @@ function selectDay(i){
     phEl.innerHTML = `<h2>${day.title} — ${day.date}(${day.dow})</h2>${day.placeholder || '상세 일정 미정'}<div class="ph-note">확정되면 이 파일의 DAYS 데이터에 stops를 채우면 지도·피커가 자동 생성됩니다.</div>`;
     pickerWrap.style.display = 'none';
     labelEl.style.display = 'none';
+    pickerToggle.style.display = 'none';
     map.setView([40.7300,-73.9850], 11);
     return;
   }
@@ -809,6 +1196,7 @@ function selectDay(i){
   phEl.style.display = 'none';
   pickerWrap.style.display = 'block';
   labelEl.style.display = 'block';
+  pickerToggle.style.display = 'flex';
   labelEl.innerHTML = '스크롤해서 스팟 선택 ▾';
 
   day.stops.forEach((s, idx) => {
@@ -850,6 +1238,7 @@ function selectDay(i){
   document.getElementById('picker-highlight').style.top = pad + 'px';
   scrollEl.style.padding = pad + 'px 0';
   labelEl.style.bottom = `calc(${16 + wrapH + 6}px + env(safe-area-inset-bottom, 0px))`;
+  positionPickerToggle();
 
   programmaticScroll = true;
   scrollEl.scrollTop = 0;
@@ -884,6 +1273,10 @@ function focusStop(i, source){
   updatePickerLabel(i);
   setSelMarker(i);
   if (source !== 'picker') scrollToIndex(i);
+  if (ml3d.open){
+    focus3dStop(i);        /* 3D에서는 Leaflet 팝업이 캔버스 아래라 열지 않는다 */
+    return;
+  }
   if (source !== 'marker') flyToStop(DAYS[curDay].stops[i].coord);
   markers[i].openPopup();
 }
@@ -897,11 +1290,7 @@ scrollEl.addEventListener('scroll', () => {
   settleTimer = setTimeout(() => {
     if (programmaticScroll) return;
     if (idx !== currentIndex || labelEl.textContent.includes('선택')) {
-      currentIndex = idx;
-      updatePickerLabel(idx);
-      setSelMarker(idx);
-      flyToStop(DAYS[curDay].stops[idx].coord);
-      markers[idx].openPopup();
+      focusStop(idx, 'picker');   /* 3D 카메라 연동까지 한 곳에서 처리 */
     }
   }, 130);
 }, { passive:true });
@@ -1047,7 +1436,21 @@ function renderIslandCard(){
     <div class="ic-sep"></div>
     <h4>${d.date}(${d.dow}) · D${d.day}</h4>
     <div class="ic-row"><span class="k">일출 / 일몰</span><span>🌅 ${rise} · 🌇 ${set}</span></div>
-    ${wxRows}`;
+    ${wxRows}
+    <div class="ic-row" id="ic-ev"><span class="k">행사·도로통제</span><span class="k">확인 중…</span></div>`;
+  /* 뉴욕시 허가 행사(도로 통제 동반)를 그 날짜로 조회 — 실패해도 카드 나머지는 정상 동작 */
+  const evRow = document.getElementById('ic-ev');
+  loadEvents(d).then(list => {
+    if (!evRow || !evRow.isConnected) return;
+    evRow.innerHTML = `<span class="k">행사·도로통제</span><span${list.length ? '' : ' class="k"'}>${list.length ? list.length + '건 ›' : '없음'}</span>`;
+    if (list.length){
+      evRow.style.cursor = 'pointer';
+      evRow.onclick = () => openEvModal(d, list);
+    }
+  }).catch(() => {
+    if (evRow && evRow.isConnected)
+      evRow.innerHTML = '<span class="k">행사·도로통제</span><span class="k">불러오지 못함</span>';
+  });
   const r = FX.rate || FALLBACK_RATE;
   const u = document.getElementById('cv-usd'), w = document.getElementById('cv-krw');
   u.addEventListener('input', () => {
@@ -1185,10 +1588,6 @@ function buildPopup(di, si){
   const d = DAYS[di], s = d.stops[si];
   const est = (EST[d.day] || {})[si];
   const sp = SPEND[spendKey(d.day, si)];
-  const lat = s.coord[0], lng = s.coord[1];
-  const gmap = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  const uber = `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${encodeURIComponent(s.name)}`;
-  const lyft = `https://ride.lyft.com/ridetype?id=lyft&destination[latitude]=${lat}&destination[longitude]=${lng}`;
   const extra = (s.links || []).map(l => `<a class="pbtn" href="${l.url}" target="_blank">${l.label}</a>`).join('');
   return `
     <div class="popup-title">${si}. ${s.name}</div>
@@ -1202,9 +1601,10 @@ function buildPopup(di, si){
     ${segRow(d, si)}
     <div class="popup-note">${s.note}</div>
     <div class="pbtn-row">
-      <a class="pbtn" href="${gmap}" target="_blank">길찾기</a>
-      <a class="pbtn" href="${uber}" target="_blank">Uber</a>
-      <a class="pbtn" href="${lyft}" target="_blank">Lyft</a>
+      <button class="pbtn nav" onclick="openNav(${di},${si})">길찾기</button>
+      <button class="pbtn" onclick="openStopIn(${di},${si},'gmap')">구글맵</button>
+      <button class="pbtn" onclick="openStopIn(${di},${si},'uber')">Uber</button>
+      <button class="pbtn" onclick="openStopIn(${di},${si},'lyft')">Lyft</button>
       ${extra}
       ${s.resv && s.resv.url ? `<a class="pbtn" href="${s.resv.url}" target="_blank">예약 확인</a>` : ''}
       ${s.resv ? (s.resv.ics
@@ -1364,7 +1764,7 @@ function openExpenseModal(){
   document.getElementById('expense-modal').style.display = 'flex';
 }
 document.getElementById('day-summary').addEventListener('click', openExpenseModal);
-document.getElementById('hd-expense').addEventListener('click', openExpenseModal);
+/* 지출 현황은 이제 브리핑의 '예산 > 상세'로 진입 (헤더 버튼은 브리핑으로 교체됨) */
 /* 새로고침: 캐시 우회 쿼리를 붙여 항상 최신 배포본을 받아옴 (홈 화면 앱에서도 동작) */
 document.getElementById('hd-reload').addEventListener('click', () => {
   location.replace(location.pathname + '?r=' + Date.now());
@@ -1460,29 +1860,132 @@ document.getElementById('tm-transit').addEventListener('click', () => setTranspo
 /* ============================================================
    실제 도로 경로 — FOSSGIS OSRM (OSM 공식 라우팅, 무료·키 불필요)
    도보 = 보행자 경로, 차량·버스 = 차도 경로, 지하철 = 직선(지하 구간)
-   결과는 localStorage 캐시 → 재접속 시 즉시, 실패 시 직선 폴백
+
+   캐시: IndexedDB(용량 수백MB) — localStorage 5MB 한계를 넘으면 저장이
+         조용히 실패해 매 접속마다 전 구간을 재요청하게 되므로 이전함
+   요청: 동시 3건 제한 + 429/5xx 지수 백오프 재시도 (데모 서버 보호)
    ============================================================ */
-let RGC = {};
-try { RGC = JSON.parse(localStorage.getItem('nycGeomV2')) || {}; } catch(e){}
-function saveRGC(){ try { localStorage.setItem('nycGeomV2', JSON.stringify(RGC)); } catch(e){} }
+const IDB = (() => {
+  const NAME = 'nycTrip', VER = 1, STORE = 'routes';
+  let dbp = null;
+  function db(){
+    if (dbp) return dbp;
+    dbp = new Promise((res, rej) => {
+      if (!window.indexedDB) return rej(new Error('IndexedDB 미지원'));
+      const r = indexedDB.open(NAME, VER);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error || new Error('idb open 실패'));
+      r.onblocked = () => rej(new Error('idb blocked'));
+    });
+    dbp.catch(() => { dbp = null; }); /* 실패 시 다음 호출에서 재시도 */
+    return dbp;
+  }
+  return {
+    entries(){
+      return db().then(d => new Promise((res, rej) => {
+        const t = d.transaction(STORE, 'readonly'), s = t.objectStore(STORE);
+        const kq = s.getAllKeys(), vq = s.getAll();
+        t.oncomplete = () => res(kq.result.map((k, i) => [k, vq.result[i]]));
+        t.onerror = t.onabort = () => rej(t.error || new Error('idb read 실패'));
+      }));
+    },
+    putMany(obj){
+      return db().then(d => new Promise((res, rej) => {
+        const t = d.transaction(STORE, 'readwrite'), s = t.objectStore(STORE);
+        for (const k in obj) s.put(obj[k], k);
+        t.oncomplete = () => res();
+        t.onerror = t.onabort = () => rej(t.error || new Error('idb write 실패'));
+      }));
+    },
+  };
+})();
+
+let RGC = Object.create(null);            /* 메모리 미러 — 동기 조회용 */
+const rgcPending = Object.create(null);   /* 아직 디스크에 안 내려간 항목 */
+let flushTimer = null;
+
+async function initRouteCache(){
+  try {
+    for (const [k, v] of await IDB.entries()) RGC[k] = v;
+  } catch(e){ console.warn('[cache] IndexedDB 사용 불가 — 메모리 캐시로 동작', e.message); }
+  /* 구버전 localStorage 캐시 흡수 후 정리 (5MB 압박 해소) */
+  try {
+    const old = JSON.parse(localStorage.getItem('nycGeomV2'));
+    if (old && typeof old === 'object'){
+      const add = {};
+      for (const k in old) if (!RGC[k]){ RGC[k] = old[k]; add[k] = old[k]; }
+      if (Object.keys(add).length) await IDB.putMany(add).catch(() => {});
+      localStorage.removeItem('nycGeomV2');
+    }
+  } catch(e){}
+}
+const cacheReady = initRouteCache();
+
+function cachePut(k, pts){
+  RGC[k] = pts; rgcPending[k] = pts;
+  clearTimeout(flushTimer);
+  flushTimer = setTimeout(flushCache, 600); /* 배치 커밋 — 구간마다 트랜잭션 열지 않음 */
+}
+async function flushCache(){
+  const batch = Object.assign(Object.create(null), rgcPending);
+  const keys = Object.keys(batch);
+  if (!keys.length) return;
+  keys.forEach(k => delete rgcPending[k]);
+  try { await IDB.putMany(batch); } catch(e){ keys.forEach(k => { rgcPending[k] = batch[k]; }); }
+}
+window.addEventListener('pagehide', flushCache);
+
+/* --- 요청 큐: 동시 3건, 실패 시 지수 백오프 --- */
+const NET = {
+  max: 3, active: 0, q: [],
+  run(fn){ return new Promise((res, rej) => { this.q.push({ fn, res, rej }); this._next(); }); },
+  _next(){
+    if (this.active >= this.max || !this.q.length) return;
+    const job = this.q.shift();
+    this.active++;
+    job.fn().then(job.res, job.rej).then(() => { this.active--; this._next(); });
+  },
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function fetchJson(url, tries = 3){
+  for (let i = 0; i < tries; i++){
+    try {
+      const r = await fetch(url);
+      if (r.ok) return await r.json();
+      if (r.status !== 429 && r.status < 500) return null; /* 4xx는 재시도 무의미 */
+    } catch(e){}
+    if (i < tries - 1) await sleep(400 * Math.pow(2, i));
+  }
+  return null;
+}
+/* OSRM 호출 단일 창구 — 경로 그리기·길찾기 양쪽이 공유 */
+function osrm(prof, coords, query){
+  const path = coords.map(c => c[1] + ',' + c[0]).join(';');
+  return NET.run(() => fetchJson(`https://routing.openstreetmap.de/${prof}/route/v1/driving/${path}?${query}`));
+}
+
 function legProfile(mode){
   if (mode === 'walk') return 'routed-foot';
   if (mode === 'uber' || mode === 'bus') return 'routed-car';
   return null; /* subway */
 }
+const geomKey = (prof, a, b) =>
+  prof + ':' + a[0].toFixed(5) + ',' + a[1].toFixed(5) + '|' + b[0].toFixed(5) + ',' + b[1].toFixed(5);
+
 async function legGeom(a, b, mode){
   const prof = legProfile(mode);
   if (!prof) return null;
-  const k = prof + ':' + a[0].toFixed(5) + ',' + a[1].toFixed(5) + '|' + b[0].toFixed(5) + ',' + b[1].toFixed(5);
+  const k = geomKey(prof, a, b);
   if (RGC[k]) return RGC[k];
-  try {
-    const r = await fetch(`https://routing.openstreetmap.de/${prof}/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`);
-    const j = await r.json();
-    if (!j.routes || !j.routes[0]) return null;
-    const pts = j.routes[0].geometry.coordinates.map(c => [Math.round(c[1]*1e5)/1e5, Math.round(c[0]*1e5)/1e5]);
-    RGC[k] = pts; saveRGC();
-    return pts;
-  } catch(e){ return null; }
+  const j = await osrm(prof, [a, b], 'overview=full&geometries=geojson');
+  if (!j || !j.routes || !j.routes[0]) return null;
+  const pts = j.routes[0].geometry.coordinates.map(c => [Math.round(c[1]*1e5)/1e5, Math.round(c[0]*1e5)/1e5]);
+  cachePut(k, pts);
+  return pts;
 }
 /* 하루치 이동 구간 목록 (듀얼모드 경유점 포함): {a:[lat,lng], b:[lat,lng], mode} */
 function dayLegs(day){
@@ -1501,6 +2004,8 @@ let routeToken = 0;
 async function enhanceRoutes(){
   const tok = ++routeToken, day = DAYS[curDay];
   if (!day.stops.length) return;
+  await cacheReady;                 /* 캐시 적재 전 요청하면 전 구간을 헛되이 재조회함 */
+  if (tok !== routeToken) return;
   const legs = dayLegs(day);
   const geoms = await Promise.all(legs.map(l => legGeom(l.a, l.b, l.mode)));
   if (tok !== routeToken) return; /* 날짜·이동모드가 바뀌었으면 폐기 */
@@ -1509,7 +2014,10 @@ async function enhanceRoutes(){
   geoms.forEach((g, i) => {
     if (g && dayRouteLines[i]){ dayRouteLines[i][0].setLatLngs(g); dayRouteLines[i][1].setLatLngs(g); }
   });
-  if (ml3d.open && ml3d.map && ml3d.map.getSource('route')) ml3d.map.getSource('route').setData(routeFC(day));
+  if (ml3d.open && ml3d.map && ml3d.map.getSource('route')){
+    ml3d.map.getSource('route').setData(routeFC(day));
+    buildLeashPts();   /* 직선 → 실도로로 바뀌었으니 고무줄 기준선도 갱신 */
+  }
 }
 
 /* ============================================================
@@ -1596,9 +2104,141 @@ function draw3dRoute(){
     ml3d.markers.push(new maplibregl.Marker({ element:el }).setLngLat([s.coord[1], s.coord[0]]).addTo(m));
   });
 
-  const lats = day.stops.map(s => s.coord[0]), lngs = day.stops.map(s => s.coord[1]);
-  m.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+  /* 경로 전체 범위 계산. 실경로 점이 수천 개라 spread 대신 reduce (스택 오버플로 방지) */
+  const acc = { mnLa: 90, mxLa: -90, mnLn: 180, mxLn: -180 };
+  const eat = (la, ln) => {
+    if (la < acc.mnLa) acc.mnLa = la; if (la > acc.mxLa) acc.mxLa = la;
+    if (ln < acc.mnLn) acc.mnLn = ln; if (ln > acc.mxLn) acc.mxLn = ln;
+  };
+  day.stops.forEach(s => eat(s.coord[0], s.coord[1]));
+  path3d(day).pts.forEach(p => eat(p[1], p[0]));
+
+  buildLeashPts();
+  clearCamLimits();   /* 제약을 걸어둔 채 fitBounds 하면 서로 싸운다 */
+  m.fitBounds([[acc.mnLn, acc.mnLa], [acc.mxLn, acc.mxLa]],
     { padding:70, pitch:58, bearing:-17, duration:800 });
+  m.once('moveend', () => {
+    if (!ml3d.open) return;
+    ml3d.baseZoom = m.getZoom();
+    applyCamLimits();
+  });
+}
+
+/* ---- 카메라 제한 ----
+   기본 3D는 제한하지 않는다. 맨해튼 전체를 자유롭게 훑어볼 수 있어야 한다.
+   1인칭만 현재 스팟 주변으로 묶는다 — 고배율·고각이라 조금만 끌어도 경로를 놓치기 때문.
+
+   ⚠️ 1인칭에 maxBounds를 쓰면 안 된다. pitch 76°는 화면이 덮는 실제 면적이 커서
+      박스가 뷰포트보다 작아지는 순간 카메라가 잠기거나 떨린다.
+      대신 '고무줄'(soft leash)로 반경을 넘으면 부드럽게 되돌린다. */
+const FPV_LEASH_M = 400;
+
+function applyCamLimits(){
+  const m = ml3d.map;
+  if (!m || !ml3d.open) return;
+  m.setMaxBounds(null);                     /* 드래그 자유 — 기본 3D는 어디든 갈 수 있다 */
+  m.setMinZoom(ml3d.fpv ? 15.5 : 10);       /* 1인칭에서만 과도한 축소를 막음 */
+}
+function clearCamLimits(){
+  const m = ml3d.map;
+  if (!m) return;
+  m.setMaxBounds(null); m.setMinZoom(0);
+}
+/* 고무줄의 기준은 '현재 스팟'이 아니라 '오늘 경로 전체'다.
+   한 점에 묶으면 그 스팟 주변을 벗어나지 못해 경로를 따라 이동할 수가 없다.
+   경로를 약 60m 간격으로 솎아 기준선을 만들고, 거기서 가장 가까운 점까지의 거리로 판정한다. */
+function buildLeashPts(){
+  const day = DAYS[curDay];
+  ml3d.leashPts = [];
+  if (!day || !day.stops.length) return;
+  const pts = path3d(day).pts;                       /* [lng,lat] */
+  const out = [];
+  let last = null;
+  for (const p of pts){
+    if (!last || hav([last[1], last[0]], [p[1], p[0]]) > 60){ out.push(p); last = p; }
+  }
+  if (!out.length) day.stops.forEach(s => out.push([s.coord[1], s.coord[0]]));
+  ml3d.leashPts = out;
+}
+function nearestOnRoute(lat, lng){
+  const pts = ml3d.leashPts || [];
+  let best = null, bd = Infinity;
+  for (let i = 0; i < pts.length; i++){
+    const d = hav([lat, lng], [pts[i][1], pts[i][0]]);
+    if (d < bd){ bd = d; best = pts[i]; }
+  }
+  return best ? { lat: best[1], lng: best[0], d: bd } : null;
+}
+function enforceFpvLeash(){
+  const m = ml3d.map;
+  if (!m || !ml3d.open || !ml3d.fpv || ml3d.flying || ml3d.leashing) return;
+  const c = m.getCenter();
+  const n = nearestOnRoute(c.lat, c.lng);
+  if (!n || n.d <= FPV_LEASH_M) return;               /* 경로에서 400m 안이면 자유 */
+  const t = FPV_LEASH_M / n.d;                        /* 경계까지만 끌어당긴다 (원위치 강제 아님) */
+  ml3d.leashing = true;
+  m.easeTo({
+    center:[n.lng + (c.lng - n.lng) * t, n.lat + (c.lat - n.lat) * t],
+    duration:420,
+  });
+  m.once('moveend', () => { ml3d.leashing = false; });
+}
+
+/* 피커에서 스팟을 고르면 3D 카메라도 따라간다 */
+function focus3dStop(i){
+  const m = ml3d.map, s = DAYS[curDay].stops[i];
+  if (!m || !s) return;
+  stopFly();
+  clearCamLimits();                        /* 제한이 걸린 채로는 다른 스팟으로 못 날아감 */
+  m.flyTo({
+    center:[s.coord[1], s.coord[0]],
+    zoom: ml3d.fpv ? 18 : 16.6,
+    pitch: ml3d.fpv ? 76 : 58,
+    duration:900,
+  });
+  m.once('moveend', applyCamLimits);
+}
+
+/* ---- 맥·아이패드 제스처 ----
+   macOS 트랙패드의 두 손가락 회전은 Safari만 gesture 이벤트로 노출한다.
+   Chrome·Edge에는 해당 이벤트가 없으므로 Shift+스크롤을 기울기·회전으로 매핑하고,
+   두 경우 모두 우상단 컴퍼스를 대안 조작으로 제공한다. */
+function bindTrackpadGestures(m){
+  let el;
+  try { el = m.getCanvasContainer(); } catch(e){ return; }
+  let bBearing = 0, bZoom = 0, gesturing = false;
+  el.addEventListener('gesturestart', e => {
+    e.preventDefault();
+    gesturing = true; bBearing = m.getBearing(); bZoom = m.getZoom();
+  });
+  el.addEventListener('gesturechange', e => {
+    if (!gesturing) return;
+    e.preventDefault();
+    m.jumpTo({ bearing: bBearing + e.rotation, zoom: bZoom + Math.log2(e.scale || 1) });
+  });
+  el.addEventListener('gestureend', e => { e.preventDefault(); gesturing = false; });
+  /* capture 단계에서 가로채야 MapLibre 기본 스크롤줌보다 먼저 처리됨 */
+  el.addEventListener('wheel', e => {
+    if (!e.shiftKey || e.ctrlKey) return;
+    e.preventDefault(); e.stopPropagation();
+    m.setPitch(Math.max(0, Math.min(85, m.getPitch() - e.deltaY * 0.22)));
+    m.setBearing(m.getBearing() + e.deltaX * 0.22);
+  }, { passive:false, capture:true });
+}
+
+let d3HintTimer = null;
+function showD3Hint(){
+  const el = document.getElementById('d3-hint');
+  const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+  el.innerHTML = coarse
+    ? '두 손가락으로 <b>돌리면 회전</b> · <b>위아래로 밀면 기울기</b> · 오므리면 확대'
+    : '트랙패드 두 손가락 <b>회전</b> · <kbd>Shift</kbd>+스크롤 <b>기울기</b> · <kbd>Ctrl</kbd>+드래그 <b>회전</b>';
+  el.style.display = 'block'; el.style.opacity = '1';
+  clearTimeout(d3HintTimer);
+  d3HintTimer = setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => { el.style.display = 'none'; }, 460);
+  }, 5200);
 }
 
 function open3d(){
@@ -1609,14 +2249,25 @@ function open3d(){
     document.getElementById('btn3d').classList.add('on');
     document.body.classList.add('mode3d');
     ml3d.open = true;
+    showD3Hint();
     const start = day.stops[0].coord;
     if (!ml3d.map){
       ml3d.map = new maplibregl.Map({
         container:'map3d',
         style:'https://tiles.openfreemap.org/styles/liberty',
         center:[start[1], start[0]], zoom:15.5, pitch:58, bearing:-17,
-        maxPitch:85 /* 기본 60° 제한 해제 — 1인칭 시점용 */
+        maxPitch:85,            /* 기본 60° 제한 해제 — 1인칭 시점용 */
+        dragRotate:true, pitchWithRotate:true, touchPitch:true,
+        attributionControl:false
       });
+      /* 컴퍼스 = 회전·기울기 시각화 + 탭 한 번으로 북쪽 정렬 (제스처가 없는 환경의 대안) */
+      try {
+        ml3d.map.addControl(new maplibregl.NavigationControl({ visualizePitch:true }), 'top-right');
+        ml3d.map.touchZoomRotate.enable();
+        ml3d.map.keyboard.enable();
+      } catch(e){}
+      bindTrackpadGestures(ml3d.map);
+      ml3d.map.on('moveend', enforceFpvLeash);   /* 1인칭 고무줄 */
       ml3d.map.on('load', () => { ensure3dBuildings(); draw3dRoute(); });
     } else {
       ml3d.map.resize();
@@ -1626,6 +2277,7 @@ function open3d(){
 }
 function close3d(){
   stopFly();
+  clearCamLimits();      /* 다음에 다른 날짜로 열 때 이전 날 범위에 갇히지 않도록 */
   document.getElementById('map3d').style.display = 'none';
   document.getElementById('btn3d').classList.remove('on');
   document.body.classList.remove('mode3d');
@@ -1634,14 +2286,17 @@ function close3d(){
 
 /* ---- 경로 따라가기 (팔로우 캠) ---- */
 function stopFly(){
+  const was = ml3d.flying;
   ml3d.flying = false;
   if (ml3d.req) cancelAnimationFrame(ml3d.req);
   ml3d.req = null;
-  document.getElementById('d3-play').textContent = '▶ 경로 따라가기';
+  document.getElementById('d3-play').textContent = '▶ 따라가기';
+  if (was) applyCamLimits();       /* 따라가기 끝나면 다시 범위 제한 */
 }
 function startFly(){
   const { pts, legModes } = path3d(DAYS[curDay]);
   if (pts.length < 2 || !ml3d.map) return;
+  clearCamLimits();                /* 자동 주행은 경로를 따라 이동하므로 제한을 잠시 해제 */
   ml3d.flying = true;
   document.getElementById('d3-play').textContent = '⏸ 정지';
   let seg = 0, t = 0, curB = ml3d.map.getBearing();
@@ -1669,16 +2324,437 @@ function startFly(){
 }
 
 document.getElementById('btn3d').addEventListener('click', () => { ml3d.open ? close3d() : open3d(); });
-document.getElementById('d3-close').addEventListener('click', close3d);
+document.getElementById('d3-exit').addEventListener('click', close3d);
 document.getElementById('d3-play').addEventListener('click', () => { ml3d.flying ? stopFly() : startFly(); });
-document.getElementById('d3-view').addEventListener('click', function(){
+/* 1인칭 = 켜고 끄는 단일 토글. 켜짐 여부를 색으로 드러내 "지금 상태"와 "누르면 될 상태"의 혼동을 없앰 */
+document.getElementById('d3-fpv').addEventListener('click', function(){
   ml3d.fpv = !ml3d.fpv;
-  this.textContent = ml3d.fpv ? '1인칭' : '부감';
-  if (ml3d.map && !ml3d.flying) ml3d.map.easeTo({ pitch: ml3d.fpv ? 78 : 58, zoom: ml3d.fpv ? 18.2 : 16.2, duration:700 });
+  this.classList.toggle('on', ml3d.fpv);
+  const m = ml3d.map;
+  if (!m || ml3d.flying) return;
+  clearCamLimits();
+  const s = (DAYS[curDay].stops || [])[currentIndex] || DAYS[curDay].stops[0];
+  if (ml3d.fpv && s){
+    /* 1인칭은 현재 선택한 스팟에 내려앉는다 — 어디를 보는지 모르는 상태를 만들지 않음 */
+    m.flyTo({ center:[s.coord[1], s.coord[0]], zoom:18, pitch:76, duration:800 });
+  } else {
+    m.easeTo({ pitch:58, zoom: ml3d.baseZoom || 16.2, duration:700 });
+  }
+  m.once('moveend', applyCamLimits);
 });
+/* 경로 전체로 복귀 — 헤맸을 때 한 번에 돌아오는 탈출구 */
+document.getElementById('d3-all').addEventListener('click', () => {
+  if (!ml3d.map) return;
+  stopFly();
+  ml3d.fpv = false;
+  document.getElementById('d3-fpv').classList.remove('on');
+  draw3dRoute();
+});
+
+/* ============================================================
+   길찾기 (NAV) — 구글맵식 범용 경로 안내
+   · 도보·차량: OSRM 턴바이턴을 앱 안에서 직접 안내
+   · 대중교통: 구글맵으로 위임 — 지하철 운행중단·우회는 실시간으로 바뀌므로
+               MTA 실시간이 반영된 구글맵이 정확하다
+   ============================================================ */
+const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+/* ============================================================
+   외부 앱 연결 — 폰에 설치된 앱을 직접 연다
+   iOS 홈 화면 앱(standalone)에서는 target="_blank" + 유니버설 링크가
+   앱 전환 대신 인앱 브라우저로 빠지는 경우가 있다. 그래서 커스텀 스킴을
+   먼저 던지고, 앱이 없어 처리되지 않으면 웹으로 폴백한다.
+   ============================================================ */
+const APPS = {
+  gmap: {
+    app: (la, ln, nm, md) => `comgooglemaps://?daddr=${la},${ln}&directionsmode=${md || 'walking'}`,
+    web: (la, ln, nm, md) => `https://www.google.com/maps/dir/?api=1&destination=${la},${ln}&travelmode=${md || 'walking'}`,
+  },
+  amap: {
+    app: (la, ln, nm, md) => `maps://?daddr=${la},${ln}&dirflg=${md === 'driving' ? 'd' : md === 'transit' ? 'r' : 'w'}`,
+    web: (la, ln) => `https://maps.apple.com/?daddr=${la},${ln}`,
+  },
+  uber: {
+    app: (la, ln, nm) => `uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${la}&dropoff[longitude]=${ln}&dropoff[nickname]=${encodeURIComponent(nm || '')}`,
+    web: (la, ln, nm) => `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${la}&dropoff[longitude]=${ln}&dropoff[nickname]=${encodeURIComponent(nm || '')}`,
+  },
+  lyft: {
+    app: (la, ln) => `lyft://ridetype?id=lyft&destination[latitude]=${la}&destination[longitude]=${ln}`,
+    web: (la, ln) => `https://ride.lyft.com/ridetype?id=lyft&destination[latitude]=${la}&destination[longitude]=${ln}`,
+  },
+};
+/* URL 생성만 담당 — 이동 동작과 분리해 두면 검증이 쉽다 */
+function externalUrl(kind, la, ln, nm, md, native){
+  const a = APPS[kind];
+  if (!a) return '';
+  return native ? a.app(la, ln, nm, md) : a.web(la, ln, nm, md);
+}
+function openExternal(kind, la, ln, nm, md){
+  if (!APPS[kind]) return '';
+  const web = externalUrl(kind, la, ln, nm, md, false);
+  if (!/iPhone|iPad|iPod|Android/.test(navigator.userAgent)){
+    window.open(web, '_blank', 'noopener');   /* 맥·PC에서는 웹이 정답 */
+    return web;
+  }
+  /* 앱으로 전환되면 타이머가 밀려 늦게 깨어난다 — 제시간에 깨면 앱이 없는 것 */
+  const app = externalUrl(kind, la, ln, nm, md, true);
+  const t0 = Date.now();
+  const timer = setTimeout(() => {
+    if (Date.now() - t0 < 1500) location.href = web;
+  }, 1100);
+  window.addEventListener('pagehide', () => clearTimeout(timer), { once:true });
+  location.href = app;
+  return app;
+}
+/* 스팟 이름에 따옴표가 있어도 안전하도록 인덱스로 넘긴다 */
+function openStopIn(di, si, kind){
+  const s = DAYS[di] && DAYS[di].stops[si];
+  if (s) openExternal(kind, s.coord[0], s.coord[1], s.name, kind === 'gmap' ? 'transit' : undefined);
+}
+function navExternal(kind){
+  if (!NAV.to) return;
+  const md = NAV.mode === 'car' ? 'driving' : NAV.mode === 'transit' ? 'transit' : 'walking';
+  openExternal(kind, NAV.to.coord[0], NAV.to.coord[1], NAV.to.name, md);
+}
+const navLayer = L.layerGroup().addTo(map);
+const NAV = { from:null, to:null, mode:'walk', token:0, steps:[] };
+const NAV_PROF = { walk:'routed-foot', car:'routed-car' };
+const navSheet = document.getElementById('nav-sheet');
+
+const fmtM = m => m < 1000 ? Math.max(10, Math.round(m/10)*10) + 'm' : (m/1000).toFixed(m < 10000 ? 1 : 0) + 'km';
+const fmtMin = s => {
+  const m = Math.max(1, Math.round(s/60));
+  return m < 60 ? m + '분' : Math.floor(m/60) + '시간' + (m%60 ? ' ' + (m%60) + '분' : '');
+};
+
+/* 한국 내비 표준 어휘 — 영문 도로명 뒤 조사(으로/로) 선택을 피하려고 "방면"으로 통일 */
+const MNV_DIR = {
+  'left':'좌회전', 'right':'우회전',
+  'sharp left':'급좌회전', 'sharp right':'급우회전',
+  'slight left':'좌측 방향', 'slight right':'우측 방향',
+  'straight':'직진', 'uturn':'유턴',
+};
+const MNV_ICON = {
+  'left':'↰', 'right':'↱', 'sharp left':'↰', 'sharp right':'↱',
+  'slight left':'↖', 'slight right':'↗', 'straight':'↑', 'uturn':'↩',
+};
+function stepIcon(st){
+  const t = st.maneuver.type;
+  if (t === 'depart') return '●';
+  if (t === 'arrive') return '⚑';
+  if (t === 'roundabout' || t === 'rotary') return '↻';
+  return MNV_ICON[st.maneuver.modifier] || '↑';
+}
+function stepText(st){
+  const t = st.maneuver.type, mod = st.maneuver.modifier || '', road = (st.name || '').trim();
+  const dir = MNV_DIR[mod] || '';
+  if (t === 'depart') return road ? road + '에서 출발' : '출발';
+  if (t === 'arrive') return '목적지 도착';
+  if (t === 'roundabout' || t === 'rotary') return '로터리에서 ' + (st.maneuver.exit || 1) + '번째 출구';
+  if (t === 'turn') return road ? road + ' 방면 ' + dir : dir;
+  if (t === 'fork') return road ? road + ' 방면 ' + dir : '갈림길에서 ' + dir;
+  if (t === 'merge') return road ? road + ' 방면 합류' : '합류';
+  if (t === 'end of road') return '길 끝에서 ' + dir;
+  if (t === 'new name' || t === 'continue') return road ? road + ' 따라 직진' : '계속 직진';
+  return road ? road + ' 따라 이동' : (dir || '이동');
+}
+function hav(a, b){
+  const R = 6371000, r = Math.PI/180;
+  const dLat = (b[0]-a[0])*r, dLng = (b[1]-a[1])*r;
+  const s = Math.sin(dLat/2)**2 + Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.min(1, Math.sqrt(s)));
+}
+
+const navPoint = (name, coord, tag) => ({ name, coord, tag: tag || '' });
+function currentGps(){
+  if (geoMarker){
+    const ll = geoMarker.getLatLng();
+    return navPoint('내 위치', [ll.lat, ll.lng], 'GPS');
+  }
+  return null;
+}
+
+/* 팝업의 "길찾기" 버튼 진입점 — 전역 함수여야 인라인 onclick이 동작함 */
+function openNav(di, si){
+  const d = DAYS[di], s = d.stops[si];
+  if (!s) return;
+  NAV.to = navPoint(s.name, s.coord);
+  NAV.from = currentGps() || (si > 0
+    ? navPoint(d.stops[si-1].name, d.stops[si-1].coord, '직전 스팟')
+    : navPoint(d.stops[Math.min(1, d.stops.length-1)].name, d.stops[Math.min(1, d.stops.length-1)].coord, '스팟'));
+  if (NAV.from.coord[0] === NAV.to.coord[0] && NAV.from.coord[1] === NAV.to.coord[1]){
+    const alt = d.stops.find(x => x.coord[0] !== s.coord[0] || x.coord[1] !== s.coord[1]);
+    if (alt) NAV.from = navPoint(alt.name, alt.coord, '스팟');
+  }
+  map.closePopup();
+  showNav();
+}
+function showNav(){
+  document.body.classList.add('navopen');
+  navSheet.classList.add('open');
+  document.getElementById('nav-btn').classList.add('on');
+  renderNavHead();
+  runNav();
+}
+function closeNav(){
+  NAV.token++;                       /* 진행 중이던 응답을 폐기 */
+  document.body.classList.remove('navopen');
+  navSheet.classList.remove('open');
+  document.getElementById('nav-btn').classList.remove('on');
+  navLayer.clearLayers();
+  NAV.steps = [];
+}
+function renderNavHead(){
+  document.getElementById('nv-from').textContent = NAV.from ? NAV.from.name : '출발지';
+  document.getElementById('nv-from-tag').textContent = NAV.from ? NAV.from.tag : '';
+  document.getElementById('nv-to').textContent = NAV.to ? NAV.to.name : '목적지';
+  ['walk','car','transit'].forEach(m =>
+    document.getElementById('nv-m-' + m).classList.toggle('sel', NAV.mode === m));
+  if (NAV.from && NAV.to){
+    /* 격자형 도로 보정계수 1.35 — 실경로 도착 전 대략적인 비교용 */
+    const d = hav(NAV.from.coord, NAV.to.coord) * 1.35;
+    document.getElementById('nv-s-walk').textContent = '약 ' + fmtMin(d / 1.33);
+    document.getElementById('nv-s-car').textContent  = '약 ' + fmtMin(d / 5.56);
+  }
+}
+function drawNavEnds(){
+  const mk = (c, cls) => L.marker(c, { icon: L.divIcon({
+    className:'', html:`<div class="nv-pin ${cls}"></div>`, iconSize:[16,16], iconAnchor:[8,8] }) }).addTo(navLayer);
+  mk(NAV.from.coord, 'a'); mk(NAV.to.coord, 'b');
+}
+function fitNav(pts){
+  /* 시트가 화면 아래쪽을 덮으므로 하단 패딩을 크게 잡아 경로가 가려지지 않게 함 */
+  map.fitBounds(L.latLngBounds(pts), {
+    paddingTopLeft:[36, 36],
+    paddingBottomRight:[36, Math.round(window.innerHeight * 0.46)],
+  });
+}
+function focusNavStep(i){
+  const st = NAV.steps[i];
+  if (!st || !st.maneuver || !st.maneuver.location) return;
+  document.querySelectorAll('#nv-steps .nv-step').forEach((el, k) => el.classList.toggle('sel', k === i));
+  map.flyTo([st.maneuver.location[1], st.maneuver.location[0]], 17, { duration:0.5 });
+}
+
+async function runNav(){
+  const tok = ++NAV.token;
+  const sum = document.getElementById('nv-sum'), body = document.getElementById('nv-steps');
+  navLayer.clearLayers();
+  if (!NAV.from || !NAV.to) return;
+  drawNavEnds();
+
+  if (NAV.mode === 'transit'){
+    sum.innerHTML = '';
+    body.innerHTML =
+      `<div class="nv-msg"><span class="nv-big">지하철·버스는 구글맵에서 안내합니다</span>
+        운행 중단과 우회가 실시간으로 반영됩니다.</div>
+       <button class="nv-gm" onclick="navExternal('gmap')">구글맵 앱에서 대중교통 경로 열기</button>`;
+    fitNav([NAV.from.coord, NAV.to.coord]);
+    return;
+  }
+
+  sum.innerHTML = '<span class="nv-dur">경로 계산 중</span>';
+  body.innerHTML = '<div class="nv-msg"><div class="nv-spin"></div>경로를 찾고 있습니다</div>';
+
+  const j = await osrm(NAV_PROF[NAV.mode], [NAV.from.coord, NAV.to.coord],
+                       'overview=full&geometries=geojson&steps=true');
+  if (tok !== NAV.token) return;
+  const rt = j && j.routes && j.routes[0];
+  const gmMode = NAV.mode === 'car' ? 'driving' : 'walking';
+
+  if (!rt){
+    sum.innerHTML = '';
+    body.innerHTML =
+      `<div class="nv-msg"><span class="nv-big">경로를 불러오지 못했습니다</span>
+        잠시 후 다시 시도하거나, 구글맵으로 확인하세요.</div>
+       <button class="nv-gm" onclick="navExternal('gmap')">구글맵 앱에서 열기</button>`;
+    fitNav([NAV.from.coord, NAV.to.coord]);
+    return;
+  }
+
+  const pts = rt.geometry.coordinates.map(c => [c[1], c[0]]);
+  const meta = MODE_META[NAV.mode === 'car' ? 'uber' : 'walk'];
+  navLayer.clearLayers();
+  L.polyline(pts, { color:'#ffffff', weight: meta.weight + 5, opacity:0.95 }).addTo(navLayer);
+  L.polyline(pts, { color: meta.color, weight: meta.weight + 1, opacity:1 }).addTo(navLayer);
+  drawNavEnds();
+
+  sum.innerHTML =
+    `<span class="nv-dur">${fmtMin(rt.duration)}</span><span class="nv-dist">${fmtM(rt.distance)}</span>
+     <span class="nv-hint">${NAV.mode === 'walk' ? '보통 걸음 기준' : '정체 없을 때 기준'}</span>`;
+  document.getElementById('nv-s-' + NAV.mode).textContent = fmtMin(rt.duration);
+
+  NAV.steps = (rt.legs && rt.legs[0] && rt.legs[0].steps) || [];
+  body.innerHTML = NAV.steps.map((st, i) =>
+    `<div class="nv-step" onclick="focusNavStep(${i})">
+       <div class="nv-ic">${stepIcon(st)}</div>
+       <div class="nv-tx"><div class="nv-rd">${escHtml(stepText(st))}</div>${
+         st.distance > 5 ? `<div class="nv-dm">${fmtM(st.distance)}</div>` : ''}</div>
+     </div>`).join('')
+    + `<button class="nv-gm" onclick="navExternal('gmap')">구글맵 앱에서 열기</button>`;
+  fitNav(pts);
+}
+
+document.getElementById('nv-close').addEventListener('click', closeNav);
+document.getElementById('nv-swap').addEventListener('click', () => {
+  if (!NAV.from || !NAV.to) return;
+  const t = NAV.from; NAV.from = NAV.to; NAV.to = t;
+  renderNavHead(); runNav();
+});
+['walk','car','transit'].forEach(m =>
+  document.getElementById('nv-m-' + m).addEventListener('click', () => {
+    if (NAV.mode === m) return;
+    NAV.mode = m; renderNavHead(); runNav();
+  }));
+document.getElementById('nav-btn').addEventListener('click', () => {
+  if (document.body.classList.contains('navopen')){ closeNav(); return; }
+  const d = DAYS[curDay];
+  if (!d.stops.length) return;
+  openNav(curDay, currentIndex);
+});
+
+/* ---- 접이식 스팟 피커 ---- */
+const pickerToggle = document.getElementById('picker-toggle');
+function positionPickerToggle(){
+  const hidden = document.body.classList.contains('pickerhid');
+  const wrapH = parseInt(pickerWrap.style.height, 10) || 220;
+  pickerToggle.style.bottom = hidden
+    ? 'calc(16px + env(safe-area-inset-bottom, 0px))'
+    : `calc(${16 + wrapH + 36}px + env(safe-area-inset-bottom, 0px))`;
+  document.getElementById('pt-txt').textContent = hidden ? '스팟 목록 보기' : '스팟 목록 숨기기';
+}
+pickerToggle.addEventListener('click', () => {
+  document.body.classList.toggle('pickerhid');
+  try { localStorage.setItem('nycPickerHid', document.body.classList.contains('pickerhid') ? '1' : '0'); } catch(e){}
+  positionPickerToggle();
+});
+try { if (localStorage.getItem('nycPickerHid') === '1') document.body.classList.add('pickerhid'); } catch(e){}
+
+/* ============================================================
+   뉴욕 현지 행사·도로 통제 (NYC Open Data — 무료·키 불필요)
+   좌표 필드가 없는 데이터셋이라 지도 핀 대신 목록 + 구글맵 검색으로 제공
+   ============================================================ */
+const EV_CACHE = {};
+async function loadEvents(day){
+  const key = ymd(tripDate(day));
+  if (EV_CACHE[key]) return EV_CACHE[key];
+  const url = 'https://data.cityofnewyork.us/resource/tvpp-9vvx.json'
+    + '?$select=event_name,event_type,event_borough,event_location,street_closure_type,start_date_time,end_date_time'
+    + `&$where=start_date_time>='${key}T00:00:00' AND start_date_time<'${key}T23:59:59'`
+    + " AND street_closure_type!='N/A' AND (event_borough='Manhattan' OR event_borough='Brooklyn')"
+    + '&$order=start_date_time&$limit=60';
+  const j = await NET.run(() => fetchJson(encodeURI(url), 2));
+  EV_CACHE[key] = Array.isArray(j) ? j : [];
+  return EV_CACHE[key];
+}
+function openEvModal(day, list){
+  const hm = s => s ? s.slice(11, 16) : '';
+  document.querySelector('#ev-card h2').textContent = `${day.date}(${day.dow}) 뉴욕 행사 · 도로 통제`;
+  document.getElementById('ev-body').innerHTML = list.length ? list.map(e => {
+    const full = /Full/i.test(e.street_closure_type || '');
+    const loc = (e.event_location || '').replace(/\s+/g, ' ').trim();
+    const q = encodeURIComponent((loc.split(',')[0] || '').trim() + ', New York');
+    return `<div class="ev-item">
+      <div class="ev-nm">${escHtml(e.event_name || '행사')}<span class="ev-badge ${full ? 'full' : 'part'}">${full ? '전면 통제' : '부분 통제'}</span></div>
+      <div class="ev-meta">${escHtml(e.event_borough || '')} · ${escHtml(e.event_type || '')} · ${hm(e.start_date_time)}~${hm(e.end_date_time)}</div>
+      <div class="ev-loc">${escHtml(loc)}</div>
+      <a class="ev-gm" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">지도에서 위치 보기 ›</a>
+    </div>`;
+  }).join('') : '<div class="nv-msg">이 날 등록된 도로 통제 행사가 없습니다.</div>';
+  document.getElementById('ev-modal').style.display = 'flex';
+}
+document.getElementById('ev-close').addEventListener('click', () => {
+  document.getElementById('ev-modal').style.display = 'none';
+});
+document.getElementById('ev-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'ev-modal') e.target.style.display = 'none';
+});
+
+/* ============================================================
+   데이터 정합성 검증 — Day 5~14를 채울 때 형식 실수를 즉시 잡기 위한 부팅 검사
+   콘솔에 결과 출력, ?debug=1 로 열면 화면 배너로도 표시
+   ============================================================ */
+function showDataBanner(errs){
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:8px;right:8px;top:calc(140px + env(safe-area-inset-top,0px));'
+    + 'z-index:3000;background:#3a2026;color:#ffd9d5;border:1px solid #e0574c;border-radius:12px;'
+    + 'padding:12px 14px;font-size:11.5px;line-height:1.65;max-height:46vh;overflow:auto;box-shadow:0 8px 28px rgba(0,0,0,.5)';
+  el.innerHTML = `<b>데이터 검증 ${errs.length}건</b><br>` + errs.map(escHtml).join('<br>')
+    + '<br><button style="margin-top:10px;padding:7px 12px;border-radius:8px;border:none;background:#e0574c;'
+    + 'color:#fff;font-weight:700;cursor:pointer;font-family:inherit" onclick="this.parentNode.remove()">닫기</button>';
+  document.body.appendChild(el);
+}
+function validateData(){
+  const errs = [], MODES = ['walk','subway','uber','bus'];
+  const inNYC = c => Array.isArray(c) && c.length === 2
+    && c[0] >= 40.5 && c[0] <= 41.0 && c[1] >= -74.3 && c[1] <= -73.7;
+  DAYS.forEach(d => {
+    const tag = 'D' + d.day;
+    if (!d.stops.length){
+      if (d.modes.length) errs.push(`${tag}: stops가 비었는데 modes가 ${d.modes.length}개`);
+      return;
+    }
+    if (d.modes.length !== d.stops.length - 1)
+      errs.push(`${tag}: modes ${d.modes.length}개 — stops-1 = ${d.stops.length - 1}개여야 함`);
+    if (d.segs && d.segs.length !== d.modes.length)
+      errs.push(`${tag}: segs ${d.segs.length}개 — modes ${d.modes.length}개와 같아야 함`);
+    d.stops.forEach((s, i) => {
+      if (!inNYC(s.coord)) errs.push(`${tag} stop[${i}] "${s.name}": 좌표가 NYC 범위 밖 (${s.coord})`);
+      if (['food','attraction','transit'].indexOf(s.type) < 0) errs.push(`${tag} stop[${i}]: type "${s.type}" 오류`);
+    });
+    d.modes.forEach((m, i) => {
+      let legs;
+      if (typeof m === 'string') legs = [{ mode:m }];
+      else {
+        if (!(m.car && m.transit)) errs.push(`${tag} modes[${i}]: 듀얼모드에 car 또는 transit이 없음`);
+        legs = ['car','transit'].reduce((acc, k) => acc.concat((m[k] && m[k].legs) || []), []);
+      }
+      legs.forEach(l => {
+        if (MODES.indexOf(l.mode) < 0) errs.push(`${tag} modes[${i}]: 이동수단 "${l.mode}" 오류`);
+        if (l.to && !inNYC(l.to)) errs.push(`${tag} modes[${i}]: 경유점 좌표가 NYC 범위 밖 (${l.to})`);
+      });
+    });
+    const t = EST[d.day] || {};
+    for (const k in t){
+      const v = t[k];
+      if (!Array.isArray(v) || v.length !== 3){ errs.push(`${tag} EST[${k}]: [최소,최대,카테고리] 형식이 아님`); continue; }
+      if (v[0] > v[1]) errs.push(`${tag} EST[${k}]: 최소 ${v[0]} > 최대 ${v[1]}`);
+      if (CATS.indexOf(v[2]) < 0) errs.push(`${tag} EST[${k}]: 카테고리 "${v[2]}" 오타`);
+      if (/^\d+$/.test(k) && +k >= d.stops.length) errs.push(`${tag} EST[${k}]: stop 인덱스 범위 초과 (최대 ${d.stops.length - 1})`);
+    }
+    const c = CROWD[d.day] || {};
+    for (const k in c){
+      if (+k >= d.stops.length) errs.push(`${tag} CROWD[${k}]: stop 인덱스 범위 초과 (최대 ${d.stops.length - 1})`);
+      if (!(c[k][0] >= 1 && c[k][0] <= 4)) errs.push(`${tag} CROWD[${k}]: 레벨은 1~4`);
+    }
+  });
+  if (errs.length){
+    console.error('%c[데이터 검증] ' + errs.length + '건 발견', 'color:#e0574c;font-weight:700');
+    errs.forEach(e => console.error('  · ' + e));
+    if (/[?&]debug=1/.test(location.search)) showDataBanner(errs);
+  } else {
+    console.log('%c[데이터 검증] 통과 · 확정 ' + DAYS.filter(d => d.stops.length).length + '일 / 전체 ' + DAYS.length + '일',
+      'color:#2fa84f;font-weight:700');
+  }
+  return errs;
+}
 
 /* 데스크톱 편의: ←/→ 로 날짜 이동, ↑/↓ 로 스팟 이동 */
 document.addEventListener('keydown', (e) => {
+  /* 금액·메모 입력 중에는 방향키가 날짜를 넘기면 안 됨 */
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === 'Escape'){
+    if (briefModal.style.display === 'flex') return closeBriefing();
+    if (document.body.classList.contains('navopen')) return closeNav();
+    if (ml3d.open) return close3d();
+    ['day-modal','expense-modal','ev-modal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.style.display !== 'none') el.style.display = 'none';
+    });
+    if (sheetEl.classList.contains('open')) closeSheet();
+    return;
+  }
   if (e.key === 'ArrowRight') selectDay(Math.min(DAYS.length-1, curDay+1));
   else if (e.key === 'ArrowLeft') selectDay(Math.max(0, curDay-1));
   else if (e.key === 'ArrowDown' && DAYS[curDay].stops.length) { e.preventDefault(); scrollToIndex(Math.min(DAYS[curDay].stops.length-1, currentIndex+1)); }
@@ -1693,6 +2769,220 @@ function defaultDayIndex(){
   const diff = Math.floor((today - start) / 86400000);
   return Math.max(0, Math.min(DAYS.length - 1, diff));
 }
+/* ============================================================
+   오프라인 대비 (지하철 등 일시적 단절 구간)
+   sw.js가 레포에 없어도 앱은 정상 동작한다 — 등록 실패는 조용히 무시
+   ============================================================ */
+if ('serviceWorker' in navigator && location.protocol === 'https:'){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+  /* 저장소 축출 방지 요청 — iOS는 홈 화면 앱일 때 승인 확률이 높다 */
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+}
+function updateOnline(){
+  const el = document.getElementById('offline-chip');
+  if (el) el.style.display = navigator.onLine ? 'none' : 'block';
+}
+window.addEventListener('online', updateOnline);
+window.addEventListener('offline', updateOnline);
+updateOnline();
+
+/* ============================================================
+   작전 브리핑 — 여행 전체를 한 화면에서 감시하는 지휘 콘솔
+   기존 데이터(DAYS·EST·SPEND·resv·WX·FX·행사)를 집계만 한다. 새 외부 호출 없음
+   ============================================================ */
+const TRIP_START = new Date(2026, 9, 6);   /* 10/6 */
+const TRIP_END   = new Date(2026, 9, 20);  /* 10/20 */
+
+function allReservations(){
+  const out = [];
+  DAYS.forEach((d, di) => (d.stops || []).forEach((s, si) => {
+    if (!s.resv) return;
+    const [dp, tp] = s.resv.at.split(' ');
+    const [Y, M, D] = dp.split('-').map(Number);
+    const [h, m] = tp.split(':').map(Number);
+    out.push({
+      di, si, day: d.day, at: new Date(Y, M - 1, D, h, m),
+      name: s.name, label: s.resv.label || '', url: s.resv.url,
+      status: /필수|대기|매진|미정/.test(s.resv.label || '') ? 'wait' : 'ok',
+    });
+  }));
+  out.sort((a, b) => a.at - b.at);
+  return out;
+}
+function fmtCd(ms){
+  if (ms <= 0) return '경과';
+  const d = Math.floor(ms / 86400000);
+  if (d >= 2) return 'D-' + d;
+  const h = Math.floor(ms % 86400000 / 3600000), m = Math.floor(ms % 3600000 / 60000), s = Math.floor(ms % 60000 / 1000);
+  const p = n => String(n).padStart(2, '0');
+  return (d > 0 ? d + '일 ' : '') + p(h) + ':' + p(m) + ':' + p(s);
+}
+function tripPhase(){
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (today < TRIP_START) return { phase:'before', dday: Math.round((TRIP_START - today) / 86400000) };
+  if (today <= TRIP_END)  return { phase:'during', dayNo: Math.round((today - TRIP_START) / 86400000) + 1 };
+  return { phase:'after' };
+}
+function budgetTotals(){
+  let emin = 0, emax = 0, act = 0;
+  DAYS.forEach(d => { const e = estSumDay(d); if (e){ emin += e[0]; emax += e[1]; } act += actSumDay(d); });
+  return { emin, emax, act };
+}
+
+let briefTimer = null;
+const briefModal = document.getElementById('brief-modal');
+
+function nextReservation(){
+  const now = Date.now();
+  return allReservations().find(r => r.at.getTime() > now) || null;
+}
+function updateBriefClocks(){
+  const live = document.getElementById('bf-live');
+  if (live) live.style.opacity = (Math.floor(Date.now() / 1000) % 2) ? '1' : '.35';  /* 심박 */
+  const nr = nextReservation();
+  const cd = document.getElementById('bf-cd-main');
+  if (cd && nr) cd.textContent = fmtCd(nr.at.getTime() - Date.now());
+}
+
+function buildBriefing(){
+  const ph = tripPhase();
+  const rsv = allReservations();
+  const nr = nextReservation();
+  const bud = budgetTotals();
+  const d = DAYS[curDay];
+
+  /* 미션 클럭 */
+  let ddayBig, phaseLb, phaseCls, clockR;
+  if (ph.phase === 'before'){
+    ddayBig = `D-${ph.dday}`; phaseCls = 'before'; phaseLb = '출발 대기';
+    clockR = `출발까지 <b>${ph.dday}일</b><br>10/6(화) 22:30 EWR 도착 예정 · 14박 15일`;
+  } else if (ph.phase === 'during'){
+    ddayBig = `DAY ${ph.dayNo}<small>/15</small>`; phaseCls = 'during'; phaseLb = '작전 진행';
+    clockR = `여행 <b>${ph.dayNo}일차</b> 진행 중<br>${d.date}(${d.dow}) · ${d.stops.length ? d.sub : '일정 미정'}`;
+  } else {
+    ddayBig = '완료'; phaseCls = 'after'; phaseLb = '귀국 완료';
+    clockR = `10/6~10/20 여행 종료<br>수고했어요 🫡`;
+  }
+
+  /* 다음 예약 */
+  const nextHtml = nr ? `
+    <div class="bf-next">
+      <div class="bf-next-l">
+        <div class="bf-nm">${escHtml(nr.name)}</div>
+        <div class="bf-meta">${nr.at.getMonth()+1}/${nr.at.getDate()} ${String(nr.at.getHours()).padStart(2,'0')}:${String(nr.at.getMinutes()).padStart(2,'0')} · ${escHtml(nr.label)}</div>
+      </div>
+      <div class="bf-cd"><small>D-DAY</small><span id="bf-cd-main">${fmtCd(nr.at.getTime() - Date.now())}</span></div>
+    </div>` : `<div class="bf-meta" style="color:var(--sub);font-size:11.5px">예정된 예약이 없습니다.</div>`;
+
+  /* 예약 타임라인 */
+  const rsvHtml = rsv.length ? rsv.map(r => `
+    <div class="bf-rv">
+      <span class="bf-st ${r.status}">${r.status === 'ok' ? '확정' : '대기'}</span>
+      <div class="bf-rv-m">
+        <div class="bf-rv-nm">${escHtml(r.name)}</div>
+        <div class="bf-rv-sub">${r.at.getMonth()+1}/${r.at.getDate()} ${String(r.at.getHours()).padStart(2,'0')}:${String(r.at.getMinutes()).padStart(2,'0')} · D${r.day}</div>
+      </div>
+      <span class="bf-jump" onclick="briefJump(${r.di},${r.si})">지도 ›</span>
+    </div>`).join('') : '<div class="bf-meta" style="color:var(--sub);font-size:11.5px">등록된 예약이 없습니다.</div>';
+
+  /* 예산 */
+  const rate = FX.rate || FALLBACK_RATE;
+  const pct = bud.emin ? Math.round(bud.act / bud.emin * 100) : 0;
+  const fill = bud.emax ? Math.min(100, bud.act / bud.emax * 100) : 0;
+  const over = bud.act > bud.emax && bud.emax > 0;
+  const budHtml = `
+    <div class="bf-bud-row"><span class="bf-k">예상 (2인 합계)</span><span class="bf-v">${fmt$(Math.round(bud.emin))} ~ ${fmt$(Math.round(bud.emax))}</span></div>
+    <div class="bf-bud-row"><span class="bf-k">실제 지출</span><span class="bf-v">${bud.act > 0 ? fmt$(Math.round(bud.act*100)/100) : '—'}</span></div>
+    <div class="bf-gauge ${over ? 'over' : ''}"><span style="width:${fill}%"></span></div>
+    <div class="bf-bud-note">${bud.act > 0 ? `예상 최소 대비 ${pct}% 집행 · ≈ ${fmtW(bud.act*rate)}` : '지출 기록 시 집행률이 표시됩니다'}</div>`;
+
+  /* 환경 */
+  const rise = sunTime(2026, 10, 5 + d.day, true), set = sunTime(2026, 10, 5 + d.day, false);
+  let wxCell = '<span class="bf-cv">—</span>';
+  if (WX && WX.daily){
+    const i = WX.daily.time.indexOf(ymd(tripDate(d)));
+    if (i >= 0) wxCell = `<span class="bf-cv">${wmoIcon(WX.daily.weather_code[i])} ${Math.round(WX.daily.temperature_2m_max[i])}°<small> / ${Math.round(WX.daily.temperature_2m_min[i])}° · 강수 ${WX.daily.precipitation_probability_max[i]}%</small></span>`;
+    else wxCell = '<span class="bf-cv" style="font-size:11px;color:var(--sub)">14일 전부터 제공</span>';
+  }
+  const envHtml = `
+    <div class="bf-env">
+      <div class="bf-cell"><div class="bf-cl">D${d.day} 날씨</div>${wxCell}</div>
+      <div class="bf-cell"><div class="bf-cl">환율</div><span class="bf-cv">₩${Math.round(rate).toLocaleString('ko-KR')}<small>/$</small></span></div>
+      <div class="bf-cell"><div class="bf-cl">일출 · 일몰</div><span class="bf-cv" style="font-size:12.5px">🌅 ${rise}  🌇 ${set}</span></div>
+      <div class="bf-cell"><div class="bf-cl">확정 일정</div><span class="bf-cv">${DAYS.filter(x=>x.stops.length).length}<small> / ${DAYS.length}일</small></span></div>
+    </div>`;
+
+  /* 경보 */
+  const waitN = rsv.filter(r => r.status === 'wait').length;
+  const undet = DAYS.filter(x => !x.stops.length).length;
+  const alerts = [];
+  if (waitN) alerts.push(`<div class="bf-alert warn"><span class="bf-dot"></span><span class="bf-at"><b>대기 예약 ${waitN}건</b> — ${escHtml(rsv.filter(r=>r.status==='wait').map(r=>r.name).join(', '))} 확정 필요</span></div>`);
+  alerts.push(`<div class="bf-alert warn" id="bf-alert-ev"><span class="bf-dot"></span><span class="bf-at">D${d.day} 도로통제 행사 <b>확인 중…</b></span></div>`);
+  if (undet) alerts.push(`<div class="bf-alert ok"><span class="bf-dot" style="background:var(--sub)"></span><span class="bf-at">미확정 일정 <b>${undet}일</b> — 확정 시 자동 반영됩니다</span></div>`);
+  alerts.push(`<div class="bf-alert ok"><span class="bf-dot"></span><span class="bf-at">데이터 정합성 <b>정상</b> · 확정 ${DAYS.filter(x=>x.stops.length).length}일 이식 완료</span></div>`);
+
+  document.getElementById('bf-body').innerHTML = `
+    <div class="bf-clock">
+      <div class="bf-dday">${ddayBig}</div>
+      <div class="bf-clock-r"><span class="bf-phase ${phaseCls}">${phaseLb}</span><br>${clockR}</div>
+    </div>
+    <div class="bf-sec">
+      <div class="bf-h"><span class="bf-lb">다음 예약</span><span class="bf-code">NEXT OP</span></div>
+      ${nextHtml}
+    </div>
+    <div class="bf-sec">
+      <div class="bf-h"><span class="bf-lb">예약 현황 (${rsv.length})</span><span class="bf-code">RESERVATIONS</span></div>
+      ${rsvHtml}
+    </div>
+    <div class="bf-sec">
+      <div class="bf-h"><span class="bf-lb">예산</span><span class="bf-code bf-jump" onclick="openExpenseModal()">상세 ›</span></div>
+      ${budHtml}
+    </div>
+    <div class="bf-sec">
+      <div class="bf-h"><span class="bf-lb">D${d.day} 환경</span><span class="bf-code">ENVIRONMENT</span></div>
+      ${envHtml}
+    </div>
+    <div class="bf-sec">
+      <div class="bf-h"><span class="bf-lb">경보</span><span class="bf-code">ALERTS</span></div>
+      ${alerts.join('')}
+    </div>`;
+
+  /* 오늘 행사 비동기 채움 (실패해도 나머지는 정상) */
+  loadEvents(d).then(list => {
+    const el = document.getElementById('bf-alert-ev');
+    if (!el || !el.isConnected) return;
+    el.className = 'bf-alert ' + (list.length ? 'warn' : 'ok');
+    el.querySelector('.bf-at').innerHTML = list.length
+      ? `D${d.day} 도로통제 행사 <b>${list.length}건</b> — <span class="bf-jump" onclick="briefShowEvents(${curDay})">보기 ›</span>`
+      : `D${d.day} 도로통제 행사 <b>없음</b>`;
+  }).catch(() => {});
+}
+function briefShowEvents(di){
+  loadEvents(DAYS[di]).then(list => openEvModal(DAYS[di], list)).catch(() => {});
+}
+function briefJump(di, si){
+  closeBriefing();
+  if (di !== curDay) selectDay(di);
+  setTimeout(() => focusStop(si), 60);
+}
+function openBriefing(){
+  buildBriefing();
+  briefModal.style.display = 'flex';
+  clearInterval(briefTimer);
+  briefTimer = setInterval(updateBriefClocks, 1000);
+}
+function closeBriefing(){
+  briefModal.style.display = 'none';
+  clearInterval(briefTimer); briefTimer = null;
+}
+document.getElementById('hd-brief').addEventListener('click', openBriefing);
+document.getElementById('bf-close').addEventListener('click', closeBriefing);
+briefModal.addEventListener('click', (e) => { if (e.target === briefModal) closeBriefing(); });
+
+validateData();
 selectDay(defaultDayIndex());
 </script>
 </body>
