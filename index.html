@@ -273,92 +273,6 @@
   #crowd-btn:active { transform:scale(.94); }
   #crowd-btn svg { width:20px; height:20px; stroke:#e6ebf2; fill:none; }
   #crowd-btn.on { background:linear-gradient(135deg,#f08c3a,#d0512d); border-color:transparent; }
-  #btn3d {
-    position:fixed; left:14px; bottom:calc(178px + env(safe-area-inset-bottom)); z-index:1000;
-    width:46px; height:46px; border-radius:50%; border:1px solid var(--line); cursor:pointer;
-    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff;
-    background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    box-shadow:var(--shadow); transition:background .2s, transform .15s;
-  }
-  #btn3d:active { transform:scale(.94); }
-  #btn3d.on { background:var(--acc-grad); border-color:transparent; }
-
-  /* ---- 3D 뷰 ---- */
-  #map3d {
-    position:fixed; left:0; right:0; bottom:0; top:calc(88px + env(safe-area-inset-top, 0px));
-    z-index:900; display:none; background:#e8e6e1;
-  }
-  /* 3D에서도 스팟 목록은 살려둔다 — 지금 어디를 보고 있는지 알아야 길이 보인다 */
-  body.mode3d #gps-btn, body.mode3d #crowd-btn, body.mode3d #park-btn,
-  body.mode3d #island, body.mode3d #island-card, body.mode3d #day-summary { display:none !important; }
-  #d3-controls {
-    position:fixed; left:50%; transform:translateX(-50%);
-    bottom:calc(20px + env(safe-area-inset-bottom)); z-index:1600; display:none; gap:8px; align-items:center;
-  }
-  /* 우하단 스팟 피커와 겹치지 않도록 3D 조작부는 좌하단 세로 스택으로 */
-  body.mode3d #d3-controls {
-    display:flex; flex-direction:column; align-items:flex-start;
-    left:14px; transform:none; bottom:calc(16px + env(safe-area-inset-bottom));
-  }
-  #d3-controls button {
-    border:1px solid var(--line); background:rgba(10,12,16,.9); color:#fff;
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    font-size:12px; font-weight:700; padding:11px 16px; border-radius:999px; cursor:pointer;
-    box-shadow:var(--shadow); white-space:nowrap; line-height:1;
-    transition:background .18s, color .18s, transform .12s;
-  }
-  #d3-controls button:active { transform:scale(.96); }
-  #d3-controls button.primary { background:var(--acc-grad); border-color:transparent; }
-  /* 1인칭: 켜짐/꺼짐이 색으로 드러나는 단일 토글 — 상태 표기 혼동 제거 */
-  #d3-fpv::before {
-    content:''; width:7px; height:7px; border-radius:50%; background:#5c6675;
-    display:inline-block; margin-right:7px; vertical-align:middle; transition:background .18s, box-shadow .18s;
-  }
-  #d3-fpv.on { background:var(--acc-grad); border-color:transparent; }
-  #d3-fpv.on::before { background:#fff; box-shadow:0 0 7px rgba(255,255,255,.85); }
-
-  /* 3D 종료: 하단 중앙에서 분리 — 파괴적 동작을 주요 조작 옆에 두지 않음 */
-  #d3-exit {
-    position:fixed; z-index:1600; display:none;
-    top:calc(96px + env(safe-area-inset-top, 0px)); right:10px;
-    width:38px; height:38px; border-radius:50%; cursor:pointer;
-    border:1px solid var(--line); background:rgba(10,12,16,.9); color:#fff;
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    font-size:15px; line-height:1; box-shadow:var(--shadow);
-    align-items:center; justify-content:center; transition:transform .12s;
-  }
-  body.mode3d #d3-exit { display:flex; }
-  #d3-exit:active { transform:scale(.94); }
-
-  /* 조작 힌트 (3D 첫 진입 시 1회) */
-  #d3-hint {
-    position:fixed; z-index:1600; display:none;
-    left:50%; transform:translateX(-50%);
-    bottom:calc(76px + env(safe-area-inset-bottom));
-    max-width:min(90vw,420px); text-align:center;
-    background:rgba(10,12,16,.92); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    color:#e8ecf2; font-size:11.5px; line-height:1.6; font-weight:600;
-    padding:10px 15px; border-radius:14px; border:1px solid var(--line); box-shadow:var(--shadow);
-    transition:opacity .45s;
-  }
-  #d3-hint kbd {
-    background:rgba(255,255,255,.12); border-radius:5px; padding:1.5px 5px;
-    font-family:inherit; font-size:10.5px; font-weight:700; margin:0 1px;
-  }
-  /* MapLibre 기본 컨트롤을 앱 톤에 맞춤 (컴퍼스 = 회전·기울기 시각화) */
-  #map3d .maplibregl-ctrl-group {
-    background:rgba(10,12,16,.9); border:1px solid var(--line);
-    box-shadow:var(--shadow); border-radius:12px; overflow:hidden;
-  }
-  #map3d .maplibregl-ctrl-group button + button { border-top:1px solid var(--line); }
-  #map3d .maplibregl-ctrl-group button span { filter:invert(1) brightness(1.9); }
-  #map3d .maplibregl-ctrl-bottom-right, #map3d .maplibregl-ctrl-bottom-left { display:none; }
-  /* 우상단에 종료(✕) → 차량/대중교통 토글 → 컴퍼스 순으로 겹치지 않게 내려 배치 */
-  #map3d .maplibregl-ctrl-top-right { margin-top:96px; }
-  body.mode3d #tmode { top:calc(140px + env(safe-area-inset-top, 0px)); }
-  .ml-marker { cursor:pointer; }
-  body.mode3d .leaflet-control-container { display:none; } /* 3D 모드에서 밑에 비치는 2D 컨트롤 숨김 */
-
   #park-btn {
     position:fixed; left:14px; bottom:calc(124px + env(safe-area-inset-bottom)); z-index:1000;
     width:46px; height:46px; border-radius:50%; border:1px solid var(--line); cursor:pointer;
@@ -457,20 +371,9 @@
   /* 버튼이 켜지면 라벨도 함께 강조 — 별도 JS 동기화 없이 :has()로 처리 */
   .tool:has(> button.on) .tool-lb { color:#fff; background:rgba(79,140,255,.32); }
   /* 레일 안으로 들어온 버튼들의 개별 fixed 배치 해제 */
-  #tools #gps-btn, #tools #crowd-btn, #tools #park-btn, #tools #btn3d, #tools #nav-btn {
+  #tools #gps-btn, #tools #crowd-btn, #tools #park-btn {
     position:static; left:auto; bottom:auto; flex:0 0 auto;
   }
-  #nav-btn {
-    width:46px; height:46px; border-radius:50%; border:1px solid var(--line); cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    color:#fff; box-shadow:var(--shadow); transition:background .2s, transform .15s;
-  }
-  #nav-btn:active { transform:scale(.94); }
-  #nav-btn svg { width:21px; height:21px; stroke:#e6ebf2; fill:none; }
-  #nav-btn.on { background:var(--acc-grad); border-color:transparent; }
-  #nav-btn.on svg { stroke:#fff; }
-  body.mode3d #tools, body.navopen #tools { display:none !important; }
 
   /* ---- 접이식 스크롤 피커: 지도 가림 최소화 ---- */
   #picker-toggle {
@@ -484,90 +387,6 @@
   #picker-toggle .pt-chev { transition:transform .28s; display:inline-block; }
   body.pickerhid #picker-toggle .pt-chev { transform:rotate(180deg); }
   body.pickerhid #picker-wrap, body.pickerhid #picker-label { display:none !important; }
-  body.navopen #picker-wrap, body.navopen #picker-label, body.navopen #picker-toggle { display:none !important; }
-  body.navopen #day-summary, body.navopen #tmode, body.navopen #island, body.navopen #island-card { display:none !important; }
-
-  /* ---- 길찾기 바텀시트 ---- */
-  #nav-sheet {
-    position:fixed; left:0; right:0; bottom:0; z-index:1500;
-    background:var(--panel-solid); color:#fff; border-radius:20px 20px 0 0;
-    border-top:1px solid var(--line); box-shadow:0 -10px 40px rgba(0,0,0,.55);
-    transform:translateY(110%); transition:transform .32s cubic-bezier(.32,.72,.25,1);
-    max-height:min(74vh, 560px); display:flex; flex-direction:column;
-    padding-bottom:env(safe-area-inset-bottom, 0px);
-  }
-  #nav-sheet.open { transform:translateY(0); }
-  #nav-sheet::before {
-    content:''; display:block; width:36px; height:4px; border-radius:2px; flex:0 0 auto;
-    background:rgba(255,255,255,.18); margin:10px auto 8px;
-  }
-  .nv-head { padding:2px 16px 0; flex:0 0 auto; display:flex; align-items:flex-start; gap:10px; }
-  .nv-route { flex:1; min-width:0; }
-  .nv-pt { display:flex; align-items:center; gap:9px; font-size:13px; line-height:1.5; padding:3px 0; }
-  .nv-pt .nv-dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
-  .nv-pt.from .nv-dot { background:#8a94a4; }
-  .nv-pt.to .nv-dot { background:var(--acc); box-shadow:0 0 0 3px rgba(79,140,255,.22); }
-  .nv-pt .nv-nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
-  .nv-pt .nv-tag { font-size:10px; color:var(--sub); font-weight:600; flex:0 0 auto; }
-  .nv-rail { width:9px; display:flex; justify-content:center; }
-  .nv-rail i { display:block; width:2px; height:11px; background:rgba(255,255,255,.16); border-radius:1px; }
-  #nv-close {
-    flex:0 0 auto; width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
-    background:#1d232e; color:#9aa3b2; font-size:14px; cursor:pointer; font-family:inherit; line-height:1;
-  }
-  #nv-swap {
-    flex:0 0 auto; width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
-    background:#1d232e; color:#9aa3b2; font-size:13px; cursor:pointer; font-family:inherit; line-height:1;
-  }
-  .nv-modes { display:flex; gap:7px; padding:12px 16px 0; flex:0 0 auto; }
-  .nv-modes button {
-    flex:1; padding:9px 6px; border-radius:11px; border:1px solid #2c3442; background:#1d232e;
-    color:#9aa3b2; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;
-    display:flex; flex-direction:column; align-items:center; gap:3px; transition:background .18s, color .18s;
-  }
-  .nv-modes button.sel { background:var(--acc-grad); color:#fff; border-color:transparent; }
-  .nv-modes .nv-m-sub { font-size:9.5px; font-weight:600; opacity:.8; }
-  .nv-sum {
-    padding:12px 16px 10px; flex:0 0 auto; display:flex; align-items:baseline; gap:9px;
-    border-bottom:1px solid var(--line);
-  }
-  .nv-sum .nv-dur { font-size:21px; font-weight:800; letter-spacing:-.02em; }
-  .nv-sum .nv-dist { font-size:12.5px; color:var(--sub); font-weight:600; }
-  .nv-sum .nv-hint { font-size:10.5px; color:var(--sub); margin-left:auto; text-align:right; line-height:1.4; }
-  #nv-steps { overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px 0 10px; flex:1 1 auto; }
-  .nv-step {
-    display:flex; align-items:flex-start; gap:11px; padding:10px 16px; cursor:pointer;
-    border-bottom:1px solid rgba(255,255,255,.04); transition:background .15s;
-  }
-  .nv-step:active, .nv-step.sel { background:rgba(79,140,255,.13); }
-  .nv-step .nv-ic {
-    width:26px; height:26px; border-radius:8px; background:#232a36; flex:0 0 auto;
-    display:flex; align-items:center; justify-content:center; font-size:13px; line-height:1;
-  }
-  .nv-step .nv-tx { flex:1; min-width:0; font-size:12.5px; line-height:1.5; }
-  .nv-step .nv-rd { color:#fff; font-weight:600; }
-  .nv-step .nv-dm { color:var(--sub); font-size:11px; margin-top:1px; }
-  .nv-msg { padding:22px 18px; text-align:center; color:var(--sub); font-size:12.5px; line-height:1.65; }
-  .nv-msg .nv-big { display:block; font-size:13.5px; color:#e8ecf2; font-weight:700; margin-bottom:6px; }
-  .nv-gm {
-    display:block; margin:12px 16px 6px; padding:12px; border-radius:12px; text-align:center;
-    background:var(--acc-grad); color:#fff; font-size:13px; font-weight:700;
-    text-decoration:none; font-family:inherit; border:none; cursor:pointer; width:calc(100% - 32px);
-  }
-  .nv-spin {
-    width:17px; height:17px; border-radius:50%; margin:0 auto 10px;
-    border:2px solid rgba(255,255,255,.16); border-top-color:var(--acc);
-    animation:nvspin .7s linear infinite;
-  }
-  @keyframes nvspin { to { transform:rotate(360deg); } }
-  /* 길찾기 경로 위 출발·도착 마커 */
-  .nv-pin {
-    width:16px; height:16px; border-radius:50%; border:3px solid #fff;
-    box-shadow:0 2px 8px rgba(0,0,0,.5);
-  }
-  .nv-pin.a { background:#8a94a4; }
-  .nv-pin.b { background:var(--acc); }
-
   /* ---- 이벤트 (도로통제·퍼레이드) ---- */
   .ovl {
     position:fixed; inset:0; z-index:2100; background:rgba(0,0,0,.55);
@@ -764,14 +583,6 @@
 <div id="island-card"></div>
 <div id="crowd-toast"></div>
 <div id="offline-chip">오프라인 · 저장된 정보를 표시 중입니다</div>
-<div id="map3d"></div>
-<div id="d3-controls">
-  <button id="d3-play" class="primary">▶ 따라가기</button>
-  <button id="d3-fpv">1인칭</button>
-  <button id="d3-all">경로 전체</button>
-</div>
-<button id="d3-exit" title="3D 종료" aria-label="3D 종료">✕</button>
-<div id="d3-hint"></div>
 
 <div id="tools">
 <div class="tool" id="tool-gps"><button id="gps-btn" title="내 위치 표시" aria-label="내 위치 표시">
@@ -781,12 +592,6 @@
     <circle cx="12" cy="12" r="7.3"/>
   </svg>
 </button><span class="tool-lb">내 위치</span></div>
-
-<div class="tool" id="tool-nav"><button id="nav-btn" title="길찾기" aria-label="길찾기">
-  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 2.6 21.4 21 12 16.8 2.6 21z"/>
-  </svg>
-</button><span class="tool-lb">길찾기</span></div>
 
 <div class="tool" id="tool-crowd"><button id="crowd-btn" title="혼잡도 표시" aria-label="혼잡도 표시">
   <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -798,30 +603,9 @@
 </button><span class="tool-lb">혼잡도</span></div>
 
 <div class="tool" id="tool-park"><button id="park-btn" title="센트럴파크 명소 핀" aria-label="센트럴파크 명소 핀">🌳</button><span class="tool-lb">공원 핀</span></div>
-
-<div class="tool" id="tool-3d"><button id="btn3d" title="3D 보기" aria-label="3D 보기">3D</button><span class="tool-lb">3D</span></div>
 </div>
 
 <div id="picker-toggle"><span class="pt-chev">▾</span><span id="pt-txt">스팟 목록 숨기기</span></div>
-
-<div id="nav-sheet">
-  <div class="nv-head">
-    <div class="nv-route">
-      <div class="nv-pt from"><span class="nv-dot"></span><span class="nv-nm" id="nv-from">내 위치</span><span class="nv-tag" id="nv-from-tag"></span></div>
-      <div class="nv-rail"><i></i></div>
-      <div class="nv-pt to"><span class="nv-dot"></span><span class="nv-nm" id="nv-to">목적지</span></div>
-    </div>
-    <button id="nv-swap" title="출발지·목적지 바꾸기" aria-label="출발지와 목적지 바꾸기">⇅</button>
-    <button id="nv-close" title="길찾기 닫기" aria-label="길찾기 닫기">✕</button>
-  </div>
-  <div class="nv-modes">
-    <button id="nv-m-walk"><span>🚶 도보</span><span class="nv-m-sub" id="nv-s-walk">—</span></button>
-    <button id="nv-m-car"><span>🚗 차량</span><span class="nv-m-sub" id="nv-s-car">—</span></button>
-    <button id="nv-m-transit"><span>🚇 대중교통</span><span class="nv-m-sub">구글맵</span></button>
-  </div>
-  <div class="nv-sum" id="nv-sum"></div>
-  <div id="nv-steps"></div>
-</div>
 
 <div id="ev-modal" class="ovl"><div id="ev-card">
   <h2>가는 날 뉴욕 행사 · 도로 통제</h2>
@@ -1168,7 +952,6 @@ function buildLegend(day){
 function selectDay(i){
   curDay = i;
   const day = DAYS[i];
-  if (document.body.classList.contains('navopen')) closeNav(); /* 길찾기 시트가 새 날짜 지도를 덮지 않도록 */
   hdTitle.textContent = day.title;
   hdSub.textContent = `${day.date}(${day.dow}) · ${day.sub}`;
 
@@ -1178,9 +961,6 @@ function selectDay(i){
   buildLegend(day);
   updateDaySummary(i);
   updateTmode(day);
-  if (typeof ml3d !== 'undefined' && ml3d.open){
-    if (day.stops.length){ stopFly(); draw3dRoute(); } else { close3d(); }
-  }
   if (typeof islandCard !== 'undefined' && islandCard.style.display === 'block') renderIslandCard();
 
   if (!day.stops.length){
@@ -1273,10 +1053,6 @@ function focusStop(i, source){
   updatePickerLabel(i);
   setSelMarker(i);
   if (source !== 'picker') scrollToIndex(i);
-  if (ml3d.open){
-    focus3dStop(i);        /* 3D에서는 Leaflet 팝업이 캔버스 아래라 열지 않는다 */
-    return;
-  }
   if (source !== 'marker') flyToStop(DAYS[curDay].stops[i].coord);
   markers[i].openPopup();
 }
@@ -1601,8 +1377,7 @@ function buildPopup(di, si){
     ${segRow(d, si)}
     <div class="popup-note">${s.note}</div>
     <div class="pbtn-row">
-      <button class="pbtn nav" onclick="openNav(${di},${si})">길찾기</button>
-      <button class="pbtn" onclick="openStopIn(${di},${si},'gmap')">구글맵</button>
+      <button class="pbtn" onclick="openStopIn(${di},${si},'gmap')">구글맵 길찾기</button>
       <button class="pbtn" onclick="openStopIn(${di},${si},'uber')">Uber</button>
       <button class="pbtn" onclick="openStopIn(${di},${si},'lyft')">Lyft</button>
       ${extra}
@@ -2014,349 +1789,8 @@ async function enhanceRoutes(){
   geoms.forEach((g, i) => {
     if (g && dayRouteLines[i]){ dayRouteLines[i][0].setLatLngs(g); dayRouteLines[i][1].setLatLngs(g); }
   });
-  if (ml3d.open && ml3d.map && ml3d.map.getSource('route')){
-    ml3d.map.getSource('route').setData(routeFC(day));
-    buildLeashPts();   /* 직선 → 실도로로 바뀌었으니 고무줄 기준선도 갱신 */
-  }
 }
 
-/* ============================================================
-   3D 보기 — MapLibre GL + OpenFreeMap (무료·키 불필요, 버튼 클릭 시 지연 로드)
-   ============================================================ */
-const ml3d = { map:null, libLoaded:false, open:false, flying:false, req:null, fpv:false, markers:[] };
-
-function loadMapLibre(cb){
-  if (ml3d.libLoaded){ cb(); return; }
-  const css = document.createElement('link');
-  css.rel = 'stylesheet';
-  css.href = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
-  document.head.appendChild(css);
-  const s = document.createElement('script');
-  s.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
-  s.onload = () => { ml3d.libLoaded = true; cb(); };
-  s.onerror = () => alert('3D 지도 모듈을 불러오지 못했습니다. 네트워크 확인 후 다시 시도해 주세요.');
-  document.body.appendChild(s);
-}
-
-/* 현재 날짜의 전체 경로 좌표([lng,lat])와 점 간 이동수단 — 실경로 geometry 반영 */
-function path3d(day){
-  const legs = dayLegs(day);
-  const geoms = (day._geomsMode === transportMode) ? day._geoms : null;
-  const pts = [], legModes = [];
-  legs.forEach((l, i) => {
-    const g = (geoms && geoms[i]) ? geoms[i] : [l.a, l.b];
-    const arr = g.map(p => [p[1], p[0]]);
-    if (!pts.length) pts.push(arr[0]);
-    for (let j = 1; j < arr.length; j++){ pts.push(arr[j]); legModes.push(l.mode); }
-  });
-  return { pts, legModes };
-}
-/* 경로 GeoJSON (2D/3D 공용 데이터) */
-function routeFC(day){
-  const legs = dayLegs(day);
-  const geoms = (day._geomsMode === transportMode) ? day._geoms : null;
-  return { type:'FeatureCollection', features: legs.map((l, i) => {
-    const g = (geoms && geoms[i]) ? geoms[i] : [l.a, l.b];
-    return { type:'Feature',
-      properties:{ color:(MODE_META[l.mode] || MODE_META.walk).color },
-      geometry:{ type:'LineString', coordinates: g.map(p => [p[1], p[0]]) } };
-  }) };
-}
-
-function ensure3dBuildings(){
-  try {
-    const style = ml3d.map.getStyle();
-    if (style.layers.some(l => l.type === 'fill-extrusion')) return;
-    const srcId = Object.keys(style.sources).find(k => style.sources[k].type === 'vector');
-    if (!srcId) return;
-    ml3d.map.addLayer({
-      id:'nyc-3d-buildings', type:'fill-extrusion', source:srcId, 'source-layer':'building', minzoom:14,
-      paint:{
-        'fill-extrusion-color':'#d9d5cf',
-        'fill-extrusion-height':['coalesce', ['get','render_height'], ['get','height'], 12],
-        'fill-extrusion-base':['coalesce', ['get','render_min_height'], 0],
-        'fill-extrusion-opacity':0.85
-      }
-    });
-  } catch(e){}
-}
-
-function draw3dRoute(){
-  const m = ml3d.map, day = DAYS[curDay];
-  if (!m || !day.stops.length) return;
-  ml3d.markers.forEach(mk => mk.remove()); ml3d.markers = [];
-  if (m.getLayer('route-line')) m.removeLayer('route-line');
-  if (m.getLayer('route-casing')) m.removeLayer('route-casing');
-  if (m.getSource('route')) m.removeSource('route');
-
-  m.addSource('route', { type:'geojson', data:routeFC(day) });
-  m.addLayer({ id:'route-casing', type:'line', source:'route',
-    layout:{ 'line-cap':'round', 'line-join':'round' },
-    paint:{ 'line-color':'#ffffff', 'line-width':8, 'line-opacity':0.9 } });
-  m.addLayer({ id:'route-line', type:'line', source:'route',
-    layout:{ 'line-cap':'round', 'line-join':'round' },
-    paint:{ 'line-color':['get','color'], 'line-width':4.5 } });
-
-  day.stops.forEach((s, idx) => {
-    const el = document.createElement('div');
-    el.className = 'ml-marker';
-    el.innerHTML = `<div class="divnum ${s.type}">${idx}</div>`;
-    ml3d.markers.push(new maplibregl.Marker({ element:el }).setLngLat([s.coord[1], s.coord[0]]).addTo(m));
-  });
-
-  /* 경로 전체 범위 계산. 실경로 점이 수천 개라 spread 대신 reduce (스택 오버플로 방지) */
-  const acc = { mnLa: 90, mxLa: -90, mnLn: 180, mxLn: -180 };
-  const eat = (la, ln) => {
-    if (la < acc.mnLa) acc.mnLa = la; if (la > acc.mxLa) acc.mxLa = la;
-    if (ln < acc.mnLn) acc.mnLn = ln; if (ln > acc.mxLn) acc.mxLn = ln;
-  };
-  day.stops.forEach(s => eat(s.coord[0], s.coord[1]));
-  path3d(day).pts.forEach(p => eat(p[1], p[0]));
-
-  buildLeashPts();
-  clearCamLimits();   /* 제약을 걸어둔 채 fitBounds 하면 서로 싸운다 */
-  m.fitBounds([[acc.mnLn, acc.mnLa], [acc.mxLn, acc.mxLa]],
-    { padding:70, pitch:58, bearing:-17, duration:800 });
-  m.once('moveend', () => {
-    if (!ml3d.open) return;
-    ml3d.baseZoom = m.getZoom();
-    applyCamLimits();
-  });
-}
-
-/* ---- 카메라 제한 ----
-   기본 3D는 제한하지 않는다. 맨해튼 전체를 자유롭게 훑어볼 수 있어야 한다.
-   1인칭만 현재 스팟 주변으로 묶는다 — 고배율·고각이라 조금만 끌어도 경로를 놓치기 때문.
-
-   ⚠️ 1인칭에 maxBounds를 쓰면 안 된다. pitch 76°는 화면이 덮는 실제 면적이 커서
-      박스가 뷰포트보다 작아지는 순간 카메라가 잠기거나 떨린다.
-      대신 '고무줄'(soft leash)로 반경을 넘으면 부드럽게 되돌린다. */
-const FPV_LEASH_M = 400;
-
-function applyCamLimits(){
-  const m = ml3d.map;
-  if (!m || !ml3d.open) return;
-  m.setMaxBounds(null);                     /* 드래그 자유 — 기본 3D는 어디든 갈 수 있다 */
-  m.setMinZoom(ml3d.fpv ? 15.5 : 10);       /* 1인칭에서만 과도한 축소를 막음 */
-}
-function clearCamLimits(){
-  const m = ml3d.map;
-  if (!m) return;
-  m.setMaxBounds(null); m.setMinZoom(0);
-}
-/* 고무줄의 기준은 '현재 스팟'이 아니라 '오늘 경로 전체'다.
-   한 점에 묶으면 그 스팟 주변을 벗어나지 못해 경로를 따라 이동할 수가 없다.
-   경로를 약 60m 간격으로 솎아 기준선을 만들고, 거기서 가장 가까운 점까지의 거리로 판정한다. */
-function buildLeashPts(){
-  const day = DAYS[curDay];
-  ml3d.leashPts = [];
-  if (!day || !day.stops.length) return;
-  const pts = path3d(day).pts;                       /* [lng,lat] */
-  const out = [];
-  let last = null;
-  for (const p of pts){
-    if (!last || hav([last[1], last[0]], [p[1], p[0]]) > 60){ out.push(p); last = p; }
-  }
-  if (!out.length) day.stops.forEach(s => out.push([s.coord[1], s.coord[0]]));
-  ml3d.leashPts = out;
-}
-function nearestOnRoute(lat, lng){
-  const pts = ml3d.leashPts || [];
-  let best = null, bd = Infinity;
-  for (let i = 0; i < pts.length; i++){
-    const d = hav([lat, lng], [pts[i][1], pts[i][0]]);
-    if (d < bd){ bd = d; best = pts[i]; }
-  }
-  return best ? { lat: best[1], lng: best[0], d: bd } : null;
-}
-function enforceFpvLeash(){
-  const m = ml3d.map;
-  if (!m || !ml3d.open || !ml3d.fpv || ml3d.flying || ml3d.leashing) return;
-  const c = m.getCenter();
-  const n = nearestOnRoute(c.lat, c.lng);
-  if (!n || n.d <= FPV_LEASH_M) return;               /* 경로에서 400m 안이면 자유 */
-  const t = FPV_LEASH_M / n.d;                        /* 경계까지만 끌어당긴다 (원위치 강제 아님) */
-  ml3d.leashing = true;
-  m.easeTo({
-    center:[n.lng + (c.lng - n.lng) * t, n.lat + (c.lat - n.lat) * t],
-    duration:420,
-  });
-  m.once('moveend', () => { ml3d.leashing = false; });
-}
-
-/* 피커에서 스팟을 고르면 3D 카메라도 따라간다 */
-function focus3dStop(i){
-  const m = ml3d.map, s = DAYS[curDay].stops[i];
-  if (!m || !s) return;
-  stopFly();
-  clearCamLimits();                        /* 제한이 걸린 채로는 다른 스팟으로 못 날아감 */
-  m.flyTo({
-    center:[s.coord[1], s.coord[0]],
-    zoom: ml3d.fpv ? 18 : 16.6,
-    pitch: ml3d.fpv ? 76 : 58,
-    duration:900,
-  });
-  m.once('moveend', applyCamLimits);
-}
-
-/* ---- 맥·아이패드 제스처 ----
-   macOS 트랙패드의 두 손가락 회전은 Safari만 gesture 이벤트로 노출한다.
-   Chrome·Edge에는 해당 이벤트가 없으므로 Shift+스크롤을 기울기·회전으로 매핑하고,
-   두 경우 모두 우상단 컴퍼스를 대안 조작으로 제공한다. */
-function bindTrackpadGestures(m){
-  let el;
-  try { el = m.getCanvasContainer(); } catch(e){ return; }
-  let bBearing = 0, bZoom = 0, gesturing = false;
-  el.addEventListener('gesturestart', e => {
-    e.preventDefault();
-    gesturing = true; bBearing = m.getBearing(); bZoom = m.getZoom();
-  });
-  el.addEventListener('gesturechange', e => {
-    if (!gesturing) return;
-    e.preventDefault();
-    m.jumpTo({ bearing: bBearing + e.rotation, zoom: bZoom + Math.log2(e.scale || 1) });
-  });
-  el.addEventListener('gestureend', e => { e.preventDefault(); gesturing = false; });
-  /* capture 단계에서 가로채야 MapLibre 기본 스크롤줌보다 먼저 처리됨 */
-  el.addEventListener('wheel', e => {
-    if (!e.shiftKey || e.ctrlKey) return;
-    e.preventDefault(); e.stopPropagation();
-    m.setPitch(Math.max(0, Math.min(85, m.getPitch() - e.deltaY * 0.22)));
-    m.setBearing(m.getBearing() + e.deltaX * 0.22);
-  }, { passive:false, capture:true });
-}
-
-let d3HintTimer = null;
-function showD3Hint(){
-  const el = document.getElementById('d3-hint');
-  const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
-  el.innerHTML = coarse
-    ? '두 손가락으로 <b>돌리면 회전</b> · <b>위아래로 밀면 기울기</b> · 오므리면 확대'
-    : '트랙패드 두 손가락 <b>회전</b> · <kbd>Shift</kbd>+스크롤 <b>기울기</b> · <kbd>Ctrl</kbd>+드래그 <b>회전</b>';
-  el.style.display = 'block'; el.style.opacity = '1';
-  clearTimeout(d3HintTimer);
-  d3HintTimer = setTimeout(() => {
-    el.style.opacity = '0';
-    setTimeout(() => { el.style.display = 'none'; }, 460);
-  }, 5200);
-}
-
-function open3d(){
-  const day = DAYS[curDay];
-  if (!day.stops.length) return;
-  loadMapLibre(() => {
-    document.getElementById('map3d').style.display = 'block';
-    document.getElementById('btn3d').classList.add('on');
-    document.body.classList.add('mode3d');
-    ml3d.open = true;
-    showD3Hint();
-    const start = day.stops[0].coord;
-    if (!ml3d.map){
-      ml3d.map = new maplibregl.Map({
-        container:'map3d',
-        style:'https://tiles.openfreemap.org/styles/liberty',
-        center:[start[1], start[0]], zoom:15.5, pitch:58, bearing:-17,
-        maxPitch:85,            /* 기본 60° 제한 해제 — 1인칭 시점용 */
-        dragRotate:true, pitchWithRotate:true, touchPitch:true,
-        attributionControl:false
-      });
-      /* 컴퍼스 = 회전·기울기 시각화 + 탭 한 번으로 북쪽 정렬 (제스처가 없는 환경의 대안) */
-      try {
-        ml3d.map.addControl(new maplibregl.NavigationControl({ visualizePitch:true }), 'top-right');
-        ml3d.map.touchZoomRotate.enable();
-        ml3d.map.keyboard.enable();
-      } catch(e){}
-      bindTrackpadGestures(ml3d.map);
-      ml3d.map.on('moveend', enforceFpvLeash);   /* 1인칭 고무줄 */
-      ml3d.map.on('load', () => { ensure3dBuildings(); draw3dRoute(); });
-    } else {
-      ml3d.map.resize();
-      draw3dRoute();
-    }
-  });
-}
-function close3d(){
-  stopFly();
-  clearCamLimits();      /* 다음에 다른 날짜로 열 때 이전 날 범위에 갇히지 않도록 */
-  document.getElementById('map3d').style.display = 'none';
-  document.getElementById('btn3d').classList.remove('on');
-  document.body.classList.remove('mode3d');
-  ml3d.open = false;
-}
-
-/* ---- 경로 따라가기 (팔로우 캠) ---- */
-function stopFly(){
-  const was = ml3d.flying;
-  ml3d.flying = false;
-  if (ml3d.req) cancelAnimationFrame(ml3d.req);
-  ml3d.req = null;
-  document.getElementById('d3-play').textContent = '▶ 따라가기';
-  if (was) applyCamLimits();       /* 따라가기 끝나면 다시 범위 제한 */
-}
-function startFly(){
-  const { pts, legModes } = path3d(DAYS[curDay]);
-  if (pts.length < 2 || !ml3d.map) return;
-  clearCamLimits();                /* 자동 주행은 경로를 따라 이동하므로 제한을 잠시 해제 */
-  ml3d.flying = true;
-  document.getElementById('d3-play').textContent = '⏸ 정지';
-  let seg = 0, t = 0, curB = ml3d.map.getBearing();
-  const MPF = m => (m === 'walk' ? 0.9 : 5.5); /* 프레임당 이동(m): 도보는 천천히, 차량·지하철·버스는 빠르게 */
-  function segLen(a, b){
-    const dx = (b[0]-a[0]) * 111320 * 0.758, dy = (b[1]-a[1]) * 111320;
-    return Math.hypot(dx, dy);
-  }
-  function frame(){
-    if (!ml3d.flying) return;
-    const a = pts[seg], b = pts[seg+1];
-    const len = Math.max(segLen(a, b), 1);
-    t += MPF(legModes[seg] || 'walk') / len;
-    if (t >= 1){ seg++; t = 0;
-      if (seg >= pts.length - 1){ stopFly(); ml3d.map.easeTo({ pitch:58, zoom:15.5, duration:1200 }); return; }
-    }
-    const p = [a[0] + (b[0]-a[0]) * Math.min(t,1), a[1] + (b[1]-a[1]) * Math.min(t,1)];
-    const tgtB = Math.atan2((b[0]-a[0]) * 0.758, (b[1]-a[1])) * 180 / Math.PI;
-    let diff = ((tgtB - curB + 540) % 360) - 180;
-    curB += diff * 0.06;
-    ml3d.map.jumpTo({ center:p, bearing:curB, pitch: ml3d.fpv ? 76 : 58, zoom: ml3d.fpv ? 18.2 : 16.6 });
-    ml3d.req = requestAnimationFrame(frame);
-  }
-  ml3d.req = requestAnimationFrame(frame);
-}
-
-document.getElementById('btn3d').addEventListener('click', () => { ml3d.open ? close3d() : open3d(); });
-document.getElementById('d3-exit').addEventListener('click', close3d);
-document.getElementById('d3-play').addEventListener('click', () => { ml3d.flying ? stopFly() : startFly(); });
-/* 1인칭 = 켜고 끄는 단일 토글. 켜짐 여부를 색으로 드러내 "지금 상태"와 "누르면 될 상태"의 혼동을 없앰 */
-document.getElementById('d3-fpv').addEventListener('click', function(){
-  ml3d.fpv = !ml3d.fpv;
-  this.classList.toggle('on', ml3d.fpv);
-  const m = ml3d.map;
-  if (!m || ml3d.flying) return;
-  clearCamLimits();
-  const s = (DAYS[curDay].stops || [])[currentIndex] || DAYS[curDay].stops[0];
-  if (ml3d.fpv && s){
-    /* 1인칭은 현재 선택한 스팟에 내려앉는다 — 어디를 보는지 모르는 상태를 만들지 않음 */
-    m.flyTo({ center:[s.coord[1], s.coord[0]], zoom:18, pitch:76, duration:800 });
-  } else {
-    m.easeTo({ pitch:58, zoom: ml3d.baseZoom || 16.2, duration:700 });
-  }
-  m.once('moveend', applyCamLimits);
-});
-/* 경로 전체로 복귀 — 헤맸을 때 한 번에 돌아오는 탈출구 */
-document.getElementById('d3-all').addEventListener('click', () => {
-  if (!ml3d.map) return;
-  stopFly();
-  ml3d.fpv = false;
-  document.getElementById('d3-fpv').classList.remove('on');
-  draw3dRoute();
-});
-
-/* ============================================================
-   길찾기 (NAV) — 구글맵식 범용 경로 안내
-   · 도보·차량: OSRM 턴바이턴을 앱 안에서 직접 안내
-   · 대중교통: 구글맵으로 위임 — 지하철 운행중단·우회는 실시간으로 바뀌므로
-               MTA 실시간이 반영된 구글맵이 정확하다
-   ============================================================ */
 const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 
 /* ============================================================
@@ -2411,208 +1845,6 @@ function openStopIn(di, si, kind){
   const s = DAYS[di] && DAYS[di].stops[si];
   if (s) openExternal(kind, s.coord[0], s.coord[1], s.name, kind === 'gmap' ? 'transit' : undefined);
 }
-function navExternal(kind){
-  if (!NAV.to) return;
-  const md = NAV.mode === 'car' ? 'driving' : NAV.mode === 'transit' ? 'transit' : 'walking';
-  openExternal(kind, NAV.to.coord[0], NAV.to.coord[1], NAV.to.name, md);
-}
-const navLayer = L.layerGroup().addTo(map);
-const NAV = { from:null, to:null, mode:'walk', token:0, steps:[] };
-const NAV_PROF = { walk:'routed-foot', car:'routed-car' };
-const navSheet = document.getElementById('nav-sheet');
-
-const fmtM = m => m < 1000 ? Math.max(10, Math.round(m/10)*10) + 'm' : (m/1000).toFixed(m < 10000 ? 1 : 0) + 'km';
-const fmtMin = s => {
-  const m = Math.max(1, Math.round(s/60));
-  return m < 60 ? m + '분' : Math.floor(m/60) + '시간' + (m%60 ? ' ' + (m%60) + '분' : '');
-};
-
-/* 한국 내비 표준 어휘 — 영문 도로명 뒤 조사(으로/로) 선택을 피하려고 "방면"으로 통일 */
-const MNV_DIR = {
-  'left':'좌회전', 'right':'우회전',
-  'sharp left':'급좌회전', 'sharp right':'급우회전',
-  'slight left':'좌측 방향', 'slight right':'우측 방향',
-  'straight':'직진', 'uturn':'유턴',
-};
-const MNV_ICON = {
-  'left':'↰', 'right':'↱', 'sharp left':'↰', 'sharp right':'↱',
-  'slight left':'↖', 'slight right':'↗', 'straight':'↑', 'uturn':'↩',
-};
-function stepIcon(st){
-  const t = st.maneuver.type;
-  if (t === 'depart') return '●';
-  if (t === 'arrive') return '⚑';
-  if (t === 'roundabout' || t === 'rotary') return '↻';
-  return MNV_ICON[st.maneuver.modifier] || '↑';
-}
-function stepText(st){
-  const t = st.maneuver.type, mod = st.maneuver.modifier || '', road = (st.name || '').trim();
-  const dir = MNV_DIR[mod] || '';
-  if (t === 'depart') return road ? road + '에서 출발' : '출발';
-  if (t === 'arrive') return '목적지 도착';
-  if (t === 'roundabout' || t === 'rotary') return '로터리에서 ' + (st.maneuver.exit || 1) + '번째 출구';
-  if (t === 'turn') return road ? road + ' 방면 ' + dir : dir;
-  if (t === 'fork') return road ? road + ' 방면 ' + dir : '갈림길에서 ' + dir;
-  if (t === 'merge') return road ? road + ' 방면 합류' : '합류';
-  if (t === 'end of road') return '길 끝에서 ' + dir;
-  if (t === 'new name' || t === 'continue') return road ? road + ' 따라 직진' : '계속 직진';
-  return road ? road + ' 따라 이동' : (dir || '이동');
-}
-function hav(a, b){
-  const R = 6371000, r = Math.PI/180;
-  const dLat = (b[0]-a[0])*r, dLng = (b[1]-a[1])*r;
-  const s = Math.sin(dLat/2)**2 + Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLng/2)**2;
-  return 2*R*Math.asin(Math.min(1, Math.sqrt(s)));
-}
-
-const navPoint = (name, coord, tag) => ({ name, coord, tag: tag || '' });
-function currentGps(){
-  if (geoMarker){
-    const ll = geoMarker.getLatLng();
-    return navPoint('내 위치', [ll.lat, ll.lng], 'GPS');
-  }
-  return null;
-}
-
-/* 팝업의 "길찾기" 버튼 진입점 — 전역 함수여야 인라인 onclick이 동작함 */
-function openNav(di, si){
-  const d = DAYS[di], s = d.stops[si];
-  if (!s) return;
-  NAV.to = navPoint(s.name, s.coord);
-  NAV.from = currentGps() || (si > 0
-    ? navPoint(d.stops[si-1].name, d.stops[si-1].coord, '직전 스팟')
-    : navPoint(d.stops[Math.min(1, d.stops.length-1)].name, d.stops[Math.min(1, d.stops.length-1)].coord, '스팟'));
-  if (NAV.from.coord[0] === NAV.to.coord[0] && NAV.from.coord[1] === NAV.to.coord[1]){
-    const alt = d.stops.find(x => x.coord[0] !== s.coord[0] || x.coord[1] !== s.coord[1]);
-    if (alt) NAV.from = navPoint(alt.name, alt.coord, '스팟');
-  }
-  map.closePopup();
-  showNav();
-}
-function showNav(){
-  document.body.classList.add('navopen');
-  navSheet.classList.add('open');
-  document.getElementById('nav-btn').classList.add('on');
-  renderNavHead();
-  runNav();
-}
-function closeNav(){
-  NAV.token++;                       /* 진행 중이던 응답을 폐기 */
-  document.body.classList.remove('navopen');
-  navSheet.classList.remove('open');
-  document.getElementById('nav-btn').classList.remove('on');
-  navLayer.clearLayers();
-  NAV.steps = [];
-}
-function renderNavHead(){
-  document.getElementById('nv-from').textContent = NAV.from ? NAV.from.name : '출발지';
-  document.getElementById('nv-from-tag').textContent = NAV.from ? NAV.from.tag : '';
-  document.getElementById('nv-to').textContent = NAV.to ? NAV.to.name : '목적지';
-  ['walk','car','transit'].forEach(m =>
-    document.getElementById('nv-m-' + m).classList.toggle('sel', NAV.mode === m));
-  if (NAV.from && NAV.to){
-    /* 격자형 도로 보정계수 1.35 — 실경로 도착 전 대략적인 비교용 */
-    const d = hav(NAV.from.coord, NAV.to.coord) * 1.35;
-    document.getElementById('nv-s-walk').textContent = '약 ' + fmtMin(d / 1.33);
-    document.getElementById('nv-s-car').textContent  = '약 ' + fmtMin(d / 5.56);
-  }
-}
-function drawNavEnds(){
-  const mk = (c, cls) => L.marker(c, { icon: L.divIcon({
-    className:'', html:`<div class="nv-pin ${cls}"></div>`, iconSize:[16,16], iconAnchor:[8,8] }) }).addTo(navLayer);
-  mk(NAV.from.coord, 'a'); mk(NAV.to.coord, 'b');
-}
-function fitNav(pts){
-  /* 시트가 화면 아래쪽을 덮으므로 하단 패딩을 크게 잡아 경로가 가려지지 않게 함 */
-  map.fitBounds(L.latLngBounds(pts), {
-    paddingTopLeft:[36, 36],
-    paddingBottomRight:[36, Math.round(window.innerHeight * 0.46)],
-  });
-}
-function focusNavStep(i){
-  const st = NAV.steps[i];
-  if (!st || !st.maneuver || !st.maneuver.location) return;
-  document.querySelectorAll('#nv-steps .nv-step').forEach((el, k) => el.classList.toggle('sel', k === i));
-  map.flyTo([st.maneuver.location[1], st.maneuver.location[0]], 17, { duration:0.5 });
-}
-
-async function runNav(){
-  const tok = ++NAV.token;
-  const sum = document.getElementById('nv-sum'), body = document.getElementById('nv-steps');
-  navLayer.clearLayers();
-  if (!NAV.from || !NAV.to) return;
-  drawNavEnds();
-
-  if (NAV.mode === 'transit'){
-    sum.innerHTML = '';
-    body.innerHTML =
-      `<div class="nv-msg"><span class="nv-big">지하철·버스는 구글맵에서 안내합니다</span>
-        운행 중단과 우회가 실시간으로 반영됩니다.</div>
-       <button class="nv-gm" onclick="navExternal('gmap')">구글맵 앱에서 대중교통 경로 열기</button>`;
-    fitNav([NAV.from.coord, NAV.to.coord]);
-    return;
-  }
-
-  sum.innerHTML = '<span class="nv-dur">경로 계산 중</span>';
-  body.innerHTML = '<div class="nv-msg"><div class="nv-spin"></div>경로를 찾고 있습니다</div>';
-
-  const j = await osrm(NAV_PROF[NAV.mode], [NAV.from.coord, NAV.to.coord],
-                       'overview=full&geometries=geojson&steps=true');
-  if (tok !== NAV.token) return;
-  const rt = j && j.routes && j.routes[0];
-  const gmMode = NAV.mode === 'car' ? 'driving' : 'walking';
-
-  if (!rt){
-    sum.innerHTML = '';
-    body.innerHTML =
-      `<div class="nv-msg"><span class="nv-big">경로를 불러오지 못했습니다</span>
-        잠시 후 다시 시도하거나, 구글맵으로 확인하세요.</div>
-       <button class="nv-gm" onclick="navExternal('gmap')">구글맵 앱에서 열기</button>`;
-    fitNav([NAV.from.coord, NAV.to.coord]);
-    return;
-  }
-
-  const pts = rt.geometry.coordinates.map(c => [c[1], c[0]]);
-  const meta = MODE_META[NAV.mode === 'car' ? 'uber' : 'walk'];
-  navLayer.clearLayers();
-  L.polyline(pts, { color:'#ffffff', weight: meta.weight + 5, opacity:0.95 }).addTo(navLayer);
-  L.polyline(pts, { color: meta.color, weight: meta.weight + 1, opacity:1 }).addTo(navLayer);
-  drawNavEnds();
-
-  sum.innerHTML =
-    `<span class="nv-dur">${fmtMin(rt.duration)}</span><span class="nv-dist">${fmtM(rt.distance)}</span>
-     <span class="nv-hint">${NAV.mode === 'walk' ? '보통 걸음 기준' : '정체 없을 때 기준'}</span>`;
-  document.getElementById('nv-s-' + NAV.mode).textContent = fmtMin(rt.duration);
-
-  NAV.steps = (rt.legs && rt.legs[0] && rt.legs[0].steps) || [];
-  body.innerHTML = NAV.steps.map((st, i) =>
-    `<div class="nv-step" onclick="focusNavStep(${i})">
-       <div class="nv-ic">${stepIcon(st)}</div>
-       <div class="nv-tx"><div class="nv-rd">${escHtml(stepText(st))}</div>${
-         st.distance > 5 ? `<div class="nv-dm">${fmtM(st.distance)}</div>` : ''}</div>
-     </div>`).join('')
-    + `<button class="nv-gm" onclick="navExternal('gmap')">구글맵 앱에서 열기</button>`;
-  fitNav(pts);
-}
-
-document.getElementById('nv-close').addEventListener('click', closeNav);
-document.getElementById('nv-swap').addEventListener('click', () => {
-  if (!NAV.from || !NAV.to) return;
-  const t = NAV.from; NAV.from = NAV.to; NAV.to = t;
-  renderNavHead(); runNav();
-});
-['walk','car','transit'].forEach(m =>
-  document.getElementById('nv-m-' + m).addEventListener('click', () => {
-    if (NAV.mode === m) return;
-    NAV.mode = m; renderNavHead(); runNav();
-  }));
-document.getElementById('nav-btn').addEventListener('click', () => {
-  if (document.body.classList.contains('navopen')){ closeNav(); return; }
-  const d = DAYS[curDay];
-  if (!d.stops.length) return;
-  openNav(curDay, currentIndex);
-});
-
 /* ---- 접이식 스팟 피커 ---- */
 const pickerToggle = document.getElementById('picker-toggle');
 function positionPickerToggle(){
@@ -2746,8 +1978,6 @@ document.addEventListener('keydown', (e) => {
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
   if (e.key === 'Escape'){
     if (briefModal.style.display === 'flex') return closeBriefing();
-    if (document.body.classList.contains('navopen')) return closeNav();
-    if (ml3d.open) return close3d();
     ['day-modal','expense-modal','ev-modal'].forEach(id => {
       const el = document.getElementById(id);
       if (el && el.style.display !== 'none') el.style.display = 'none';
