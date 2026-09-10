@@ -651,6 +651,42 @@
 
   /* 작전 브리핑은 의도적으로 다크 유지 — 토큰만 로컬 복원 */
   #brief-card { --txt:#f2f5f9; --sub:#98a2b3; --line:rgba(255,255,255,.07); --acc:#5b95ff; }
+
+  /* ============================================================
+     🎯 v4 — 가독성 · 팝업 애플식 · 섹터 필터
+     ============================================================ */
+  /* 스팟 목록/피커 회색 글씨 진하게 — 식별성 개선 */
+  .picker-row { color:#6E6E73; }
+  .picker-row .pr-num { color:#3A3A3C; }
+  .picker-row.active { color:var(--txt); }
+  .dm-r { color:#48484A; }
+  .dm-date { color:#6E6E73; }
+
+  /* 팝업 — 애플식 카드(둥근 모서리·부드러운 그림자·진한 본문) */
+  .leaflet-popup-content-wrapper { border-radius:18px; box-shadow:0 12px 40px rgba(0,0,0,.16); border:.5px solid rgba(0,0,0,.06); }
+  .leaflet-popup-tip { box-shadow:0 12px 40px rgba(0,0,0,.16); }
+  .leaflet-popup-content { margin:15px 17px; }
+  .popup-title { font-size:15.5px; font-weight:800; color:var(--txt); }
+  .popup-time { color:var(--acc); font-weight:700; }
+  .popup-row { font-size:12.5px; color:#3A3A3C; }
+  .popup-row b { color:#1C1C1E; }
+  .cat-tag { background:#EFEFF4; color:#6E6E73; }
+  .popup-note { background:#F2F2F7; color:#3A3A3C; }
+  .pbtn { background:#F2F2F7; color:#1C1C1E; border-radius:11px; font-weight:600; }
+  .pbtn.nav { background:#E3F0FF; color:#0060DF; }
+  .popup-row.spent { color:#0A8A3C; }
+
+  /* 섹터 필터 칩 (레전드 바 내 · 탭하면 해당 섹터만 지도에 노출) */
+  .cat-chip {
+    display:flex; align-items:center; gap:5px; flex:0 0 auto;
+    font-weight:700; font-size:11px; color:var(--txt);
+    background:rgba(0,0,0,.05); border-radius:999px; padding:4px 10px; cursor:pointer;
+    transition:background .15s, color .15s, transform .1s;
+  }
+  .cat-chip:active { transform:scale(.95); }
+  .cat-chip .cc-dot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+  .cat-chip .cc-n { color:var(--sub); font-weight:700; }
+  .lg-sep { width:1px; height:14px; background:rgba(0,0,0,.14); flex:0 0 auto; margin:0 3px; align-self:center; }
 </style>
 </head>
 <body>
@@ -1123,8 +1159,8 @@ const DAYS = [
   segs:[
     { car:'우버 ~30분 · $35~50 (새벽 04:50, 교통 원활)', transit:'심야/새벽 지하철 비권장' },
     { car:'우버 ~30분 · $30~45 (심야 22:20)', transit:'지하철 약 45분 · $6' }] },
-{ day:9,  date:'10/14', dow:'수', title:'Day 9 · 자유일 (Jua 저녁)',  sub:'식사·동선 자유 · 저녁 Jua만 고정', stops:[], modes:[],
-  placeholder:'<b>의도적 자유일</b> — 식사·이동 모두 즉흥. <b>저녁만 고정: Jua 18:00</b> (36 E 22nd St, 플랫아이언). 미슐랭 1스타 우드파이어 한식 7코스 $150/인. <b style="color:#cc2b2b">Resy 예약 필수(9/14경 오픈, 워크인 불가)</b>. 목적: 한국 파인다이닝의 해외 소개 방식 벤치마킹(Oiji Mi와 한 쌍)' },
+{ day:9,  date:'10/14', dow:'수', title:'Day 9 · MoMA + 건축 산책 (Jua 저녁)',  sub:'MoMA → Paley Park → St. Patrick\'s → 자유 → Jua', stops:[], modes:[],
+  placeholder:'<b>🖼️ 오전 · MoMA (현대카드 무료)</b> — 11 W 53rd St · 수 10:30~17:30. 현대카드 실물+영문 신분증을 로비 <b>Member Desk</b>에 제시 → 본인+동반 <b>2인 무료</b>. 관람 약 2시간.<br><br><b>🏛️ 오전 건축 산책 (MoMA 옆 · 전부 도보 5분 내)</b><br>• <b>Paley Park</b> (3 E 53rd St) — 폭포 있는 명작 포켓파크(유현준 교수 즐겨 인용). 매일 8~20시·무료. MoMA 동쪽 1.5블록.<br>• <b>St. Patrick\'s Cathedral</b> (5th Ave·50–51st) — 네오고딕 대성당, 무료 입장. Paley 남쪽 2블록.<br>순서: <b>MoMA → Paley → St. Patrick\'s</b> → 오후 자유.<br><br><b>🍽 저녁 고정: Jua 18:00</b> (36 E 22nd St). 미슐랭 1스타 우드파이어 한식 7코스 $150/인. <b style="color:#cc2b2b">Resy 예약 필수(9/14경 오픈·워크인 불가)</b>' },
 { day:10, date:'10/15', dow:'목', title:'Day 10 · 보스턴 당일치기', sub:'새벽 정류장행 → FlixBus 왕복 → 심야 귀가 · 보스턴 상세는 정류장 카드/Notion',
   stops:[
     { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
@@ -1144,8 +1180,30 @@ const DAYS = [
   segs:[
     { car:'우버 ~30~40분 · $30~45 (새벽 04:30, 교통 원활)', transit:'새벽 지하철 비권장' },
     { car:'우버 ~30~45분 · $25~35 (심야 23:55)', transit:'심야 지하철 비권장' }] },
-{ day:11, date:'10/16', dow:'금', title:'Day 11', sub:'상세 미정', stops:[], modes:[],
-  placeholder:'후보 테마: 미정' },
+{ day:11, date:'10/16', dow:'금', title:'Day 11 · Gray\'s Papaya + 센트럴파크 + 소호', sub:'UWS 핫도그 → 센트럴파크 → 소호 → Raku 저녁',
+  stops:[
+    { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
+      time:'10:30 출발', stay:'-', menu:'-', price:'지하철/우버 $12~18',
+      note:'전날 보스턴 심야복귀 여파 → 느긋 출발. UWS(72nd)로 이동' },
+    { type:'food', name:'Gray\'s Papaya (2090 Broadway·72nd)', coord:[40.7783,-73.9816],
+      time:'11:15~11:40', stay:'25분', menu:'프랑크·리세션 스페셜 핫도그', price:'2인 $10~16',
+      note:'뉴욕 노포 핫도그. 금 8~23시. 서서 빠르게·현금 유리. 파파야 음료 곁들임' },
+    { type:'attraction', name:'센트럴파크 (72nd 서편)', coord:[40.7756,-73.9750],
+      time:'11:45~13:30', stay:'1시간45분', menu:'Strawberry Fields·Bethesda·The Mall', price:'무료',
+      note:'Gray\'s서 CPW 도보 3블록 진입. 지난 방문과 다른 서/중앙 구역 산책' },
+    { type:'attraction', name:'소호 SoHo (캐스트아이언·갤러리)', coord:[40.7237,-74.0018],
+      time:'14:00~16:30', stay:'2시간+', menu:'주철 건축·편집숍·플래그십 관찰', price:'쇼핑 별도',
+      note:'Greene/Prince/Spring St 주철 파사드·갤러리 진열·플래그십 공간 연출 관찰(구매 아님·상업예술 감각). 감도 위주' },
+    { type:'food', name:'Raku (48 MacDougal St) 우동 저녁', coord:[40.7268,-74.0037],
+      time:'17:15~18:30', stay:'1시간+', menu:'수제 우동·일식', price:'2인 $45~70',
+      resv:{ at:'2026-10-16 17:15', dur:75, label:'Raku SoHo · Resy 예약 권장', url:'https://resy.com/cities/new-york-ny/venues/raku-soho' },
+      note:'소호서 도보 10분(MacDougal). 금 12~22시. 인기라 Resy 예약 권장(워크인은 대기). 카마아게·붓카케 우동' },
+    { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
+      time:'~19:15 귀가', stay:'-', menu:'-', price:'지하철/우버 $15~22',
+      note:'Raku서 C/E(Spring St) 또는 우버 → 귀가' },
+  ],
+  modes:['uber','walk','subway','walk','subway'],
+  segs:['지하철/우버 ~40~55분 (전날 여파 느긋)','도보 3블록 (CPW 72nd 진입)','C열차 72nd(CPW)→Spring St ~20~25분','도보 10분 (소호→MacDougal)','C/E Spring St 또는 우버'] },
 { day:12, date:'10/17', dow:'토', title:'Day 12', sub:'상세 미정', stops:[], modes:[],
   placeholder:'후보 테마: 미정 — 주말이라 인기 스팟은 피하고 로컬 동네 추천' },
 { day:13, date:'10/18', dow:'일', title:'Day 13', sub:'상세 미정', stops:[], modes:[],
@@ -1166,9 +1224,14 @@ const map = L.map('map', {
   renderer: L.canvas({ padding:0.5 }),     /* 화면 밖 여유분까지 미리 그려 팬 중 끊김 방지 */
 }).setView([40.7128,-74.0060], 12);
 L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  maxZoom: 20, subdomains:'abcd',
-  attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+/* CARTO 무키 타일이 'API KEY REQUIRED' 워터마크로 막혀 Esri 라이트그레이(무키·밝은 회색)로 교체.
+   base(지형·도로) + reference(라벨) 2겹 — 애플식 미니멀 라이트 + 지명 유지. maxNativeZoom 16, 그 이상은 업스케일 */
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19, maxNativeZoom: 16,
+  attribution: '&copy; Esri &copy; OpenStreetMap contributors'
+}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19, maxNativeZoom: 16
 }).addTo(map);
 
 const dayLayer = L.layerGroup().addTo(map);
@@ -1181,6 +1244,7 @@ const hdTitle = document.getElementById('hd-title');
 const hdSub = document.getElementById('hd-sub');
 
 let markers = [], rows = [], dayRouteLines = [];
+let activeCat = null;   /* 섹터 필터: null=전체, 'food'|'attraction'|'transit' */
 let currentIndex = 0, settleTimer = null, programmaticScroll = false;
 let curDay = null;
 
@@ -1198,15 +1262,52 @@ function pickDay(k){ dayModal.style.display = 'none'; selectDay(k); }
 document.getElementById('hd-day').addEventListener('click', openDayModal);
 dayModal.addEventListener('click', (e) => { if (e.target === dayModal) dayModal.style.display = 'none'; });
 
+const CAT_META = {
+  food:{ label:'식당', color:'#E8543F' },
+  attraction:{ label:'명소', color:'#7847EC' },
+  transit:{ label:'이동', color:'#6B7280' },
+};
 function buildLegend(day){
+  let html = '';
+  if (day.stops.length){
+    const cc = {}; day.stops.forEach(s => cc[s.type] = (cc[s.type]||0)+1);
+    html += `<div class="cat-chip" onclick="toggleCat(null)" style="${activeCat===null?'background:var(--acc);color:#fff':''}">전체</div>`;
+    ['food','attraction','transit'].forEach(c => {
+      if (!cc[c]) return;
+      const on = activeCat===c, cm = CAT_META[c];
+      html += `<div class="cat-chip" onclick="toggleCat('${c}')" style="${on?`background:${cm.color};color:#fff`:''}"><span class="cc-dot" style="background:${on?'#fff':cm.color}"></span>${cm.label}<span class="cc-n" style="${on?'color:rgba(255,255,255,.85)':''}">${cc[c]}</span></div>`;
+    });
+    html += '<span class="lg-sep"></span>';
+  }
   const used = [...new Set(day.modes.flatMap(m => segLegs(m).map(l => l.mode)))];
-  legendEl.innerHTML = used.length
+  html += used.length
     ? used.map(m => `<div class="legend-item"><span class="legend-line" style="background:${MODE_META[m].color}"></span>${MODE_META[m].label}</div>`).join('')
-    : '<div class="legend-item" style="color:#6b7484">일정 확정 후 이동수단이 표시됩니다</div>';
+    : (day.stops.length ? '' : '<div class="legend-item" style="color:#8A8A8E">일정 확정 후 이동수단이 표시됩니다</div>');
+  legendEl.innerHTML = html;
+}
+function toggleCat(c){
+  activeCat = (c === activeCat) ? null : c;
+  applyCatFilter();
+  if (DAYS[curDay]) buildLegend(DAYS[curDay]);
+}
+function applyCatFilter(){
+  const day = DAYS[curDay];
+  if (!day || !day.stops.length) return;
+  map.closePopup();
+  day.stops.forEach((s, k) => {
+    const m = markers[k], el = m && m.getElement();
+    if (el) el.style.display = (activeCat===null || s.type===activeCat) ? '' : 'none';
+  });
+  dayRouteLines.forEach(pair => {
+    const casing = pair[0], line = pair[1];
+    if (casing) casing.setStyle({ opacity: activeCat ? 0.2 : 0.9 });
+    if (line) line.setStyle({ opacity: activeCat ? 0.28 : 1 });
+  });
 }
 
 function selectDay(i){
   curDay = i;
+  activeCat = null;
   const day = DAYS[i];
   hdTitle.textContent = day.title;
   hdSub.textContent = `${day.date}(${day.dow}) · ${day.sub}`;
@@ -1233,7 +1334,7 @@ function selectDay(i){
   pickerWrap.style.display = 'block';
   labelEl.style.display = 'block';
   pickerToggle.style.display = 'flex';
-  labelEl.innerHTML = '스크롤해서 스팟 선택 ▾';
+  labelEl.innerHTML = '스팟 선택 ▾';
 
   day.stops.forEach((s, idx) => {
     const icon = L.divIcon({
