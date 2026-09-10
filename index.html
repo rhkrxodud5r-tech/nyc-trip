@@ -538,6 +538,119 @@
   .bf-alert .bf-at { flex:1; color:#d3dcea; }
   .bf-alert .bf-at b { color:#fff; }
   .bf-jump { color:var(--acc); font-weight:700; cursor:pointer; }
+
+  /* ============================================================
+     ☀️ LIGHT THEME v3 — Apple 스타일 재도장 (밝은 프로스티드 글래스)
+     구조 CSS는 그대로 두고 색·타이포만 이 블록이 덮어씀. 마지막 선언이 이김.
+     ============================================================ */
+  :root {
+    --bg:#F2F2F7;
+    --panel:rgba(255,255,255,.72);
+    --panel-solid:#FFFFFF;
+    --line:rgba(0,0,0,.08);
+    --txt:#1C1C1E; --sub:#8A8A8E;
+    --acc:#007AFF; --acc-grad:linear-gradient(135deg,#3898FF,#007AFF);
+    --shadow:0 6px 22px rgba(0,0,0,.10), 0 1px 3px rgba(0,0,0,.06);
+    --blur:blur(18px) saturate(180%);
+  }
+  body { background:var(--bg); color:var(--txt); }
+
+  /* 헤더 — 글씨 키우고 밝은 글래스 위 진한 텍스트 */
+  header h1 { font-size:18px; letter-spacing:-.02em; }
+  header .sub { font-size:12.5px; }
+  #hd-reload { background:rgba(0,0,0,.05); color:var(--txt); }
+  #hd-reload svg { stroke:#1C1C1E; }
+  #hd-reload:active { background:rgba(0,0,0,.10); }
+  #hd-day:active { background:rgba(0,0,0,.05); }
+  #hd-expense { background:rgba(0,0,0,.05); color:var(--txt); font-size:12px; }
+  #hd-expense:active { background:rgba(0,0,0,.10); }
+  #hd-brief { background:rgba(0,122,255,.12); color:#007AFF; border-color:rgba(0,122,255,.30); font-size:12px; }
+  #hd-brief:active { background:rgba(0,122,255,.20); }
+
+  /* 오버레이 딤 완화(애플식 은은한 딤) */
+  #day-modal, #expense-modal, .ovl { background:rgba(0,0,0,.28); }
+
+  /* 날짜 선택 모달 — 글씨·터치영역 확대 */
+  #day-card { color:var(--txt); }
+  #day-card h2 { font-size:15px; }
+  .dm-row { padding:13px 12px; }
+  .dm-row:active { background:rgba(0,0,0,.04); }
+  .dm-row.cur { background:rgba(0,122,255,.12); }
+  .dm-d { font-size:15px; }
+  .dm-date { font-size:12px; }
+  .dm-r { font-size:12px; }
+  .dm-tag { background:rgba(0,0,0,.06); color:var(--sub); }
+
+  /* 레전드(모드 바) */
+  .legend-item { background:rgba(0,0,0,.05); font-size:11.5px; }
+
+  /* 지도 팝업 */
+  .popup-title { font-size:15px; }
+  .popup-time { color:var(--acc); }
+  .popup-row { font-size:12.5px; }
+
+  /* 스크롤 피커 — 날짜/스팟 선택 가독성 강화 */
+  #picker-label { color:var(--txt); font-size:12.5px; }
+  #picker-highlight { background:rgba(0,122,255,.10); border-top-color:rgba(0,122,255,.5); border-bottom-color:rgba(0,122,255,.5); }
+  .picker-row { color:#AEAEB2; font-size:14px; }
+  .picker-row .pr-num { background:rgba(0,0,0,.06); color:var(--sub); }
+  .picker-row.active { color:var(--txt); font-size:16px; }
+  .picker-row.active .pr-num { background:var(--acc); color:#fff; }
+  #picker-toggle { color:var(--txt); }
+
+  /* 미정 안내 카드 */
+  #placeholder { color:var(--txt); }
+  #placeholder h2 { font-size:16px; }
+  #placeholder .ph-note { color:var(--sub); }
+
+  /* 일별 지출 요약 */
+  #day-summary { color:var(--txt); font-size:12.5px; }
+
+  /* 차량/대중 토글 */
+  #tmode button { color:var(--sub); }
+
+  /* 환율·날씨 아일랜드 */
+  #island { background:rgba(255,255,255,.72); color:var(--txt); font-size:12.5px; }
+  #island .isl-div { background:rgba(0,0,0,.12); }
+  #island-card { color:var(--txt); }
+  .ic-conv input { background:#F2F2F7; border:1px solid rgba(0,0,0,.10); color:var(--txt); }
+
+  /* 좌하단 도구 버튼 — 아이콘 진하게 */
+  #gps-btn, #crowd-btn, #park-btn { color:var(--txt); }
+  #gps-btn svg, #crowd-btn svg, #park-btn svg { stroke:#1C1C1E; }
+  #gps-btn.on svg { stroke:#fff; }
+  .tool-lb { color:#3A3A3C; background:rgba(255,255,255,.72); }
+  .tool:has(> button.on) .tool-lb { color:#fff; background:rgba(0,122,255,.9); }
+
+  /* 혼잡도 토스트 */
+  #crowd-toast { background:rgba(255,255,255,.82); color:var(--txt); }
+
+  /* 지출 입력 시트 */
+  #spend-sheet { background:#fff; color:var(--txt); }
+  #spend-sheet::before { background:rgba(0,0,0,.15); }
+  #ss-amt, #ss-memo { background:#F2F2F7; border:1px solid rgba(0,0,0,.10); color:var(--txt); }
+  .pay-btn { background:#F2F2F7; color:var(--sub); border:1px solid rgba(0,0,0,.10); }
+  #ss-close { background:#F2F2F7; color:var(--sub); }
+  #ss-del { background:rgba(255,59,48,.12); color:#FF3B30; }
+
+  /* 전체 지출 모달 */
+  #expense-card { color:var(--txt); }
+  #expense-card th, #expense-card td { border-bottom:1px solid rgba(0,0,0,.08); }
+  #expense-card th { color:var(--sub); }
+  .em-total td { color:var(--txt); border-top:2px solid rgba(0,0,0,.18); }
+  #em-close { background:#F2F2F7; color:var(--sub); }
+
+  /* 이벤트(도로통제) 모달 */
+  #ev-card { color:var(--txt); }
+  #ev-close { background:#F2F2F7; color:var(--sub); }
+  .ev-item { background:#F7F7FA; }
+  .ev-item .ev-loc { color:#3A3A3C; }
+
+  /* 오프라인 칩 — 밝은 앰버 */
+  #offline-chip { background:rgba(255,248,225,.95); color:#8a5200; border:1px solid rgba(217,165,20,.4); }
+
+  /* 작전 브리핑은 의도적으로 다크 유지 — 토큰만 로컬 복원 */
+  #brief-card { --txt:#f2f5f9; --sub:#98a2b3; --line:rgba(255,255,255,.07); --acc:#5b95ff; }
 </style>
 </head>
 <body>
@@ -1012,8 +1125,25 @@ const DAYS = [
     { car:'우버 ~30분 · $30~45 (심야 22:20)', transit:'지하철 약 45분 · $6' }] },
 { day:9,  date:'10/14', dow:'수', title:'Day 9 · 자유일 (Jua 저녁)',  sub:'식사·동선 자유 · 저녁 Jua만 고정', stops:[], modes:[],
   placeholder:'<b>의도적 자유일</b> — 식사·이동 모두 즉흥. <b>저녁만 고정: Jua 18:00</b> (36 E 22nd St, 플랫아이언). 미슐랭 1스타 우드파이어 한식 7코스 $150/인. <b style="color:#cc2b2b">Resy 예약 필수(9/14경 오픈, 워크인 불가)</b>. 목적: 한국 파인다이닝의 해외 소개 방식 벤치마킹(Oiji Mi와 한 쌍)' },
-{ day:10, date:'10/15', dow:'목', title:'Day 10 · 보스턴 당일치기', sub:'FlixBus 왕복 예약완료 · 하버드·MIT·Freedom Trail', stops:[], modes:[],
-  placeholder:'<b>🚌 FlixBus 왕복 ✅예약완료</b> — 가는편 <b>05:30→09:55</b> / 오는편 <b>19:30→23:55</b>. 정류장 <b>NY 31st &amp; 8th(커브사이드) ↔ Boston South Station(Red Line 직결)</b> · 좌석 6A·6B · €126.31(유로결제 ≈$146). <b style="color:#cc2b2b">Aura 04:30 출발 필수 · 게이트 전광판 확인 · 편 지정이라 놓치면 재구매</b>.<br><br><b>동선</b>: South Station→Red Line→<b>하버드</b> 10:20~13:00(카페 3: Blue Bottle·Tatte·L.A. Burdick) → <b>MIT</b> 13:15~14:45 → <b>Ogawa Coffee</b> 10 Milk St(<b style="color:#cc2b2b">목 16시 마감</b>) → Freedom Trail(Old State House·Faneuil) → <b>Quincy Market 저녁</b> 17:00~18:30 → 도보 South Station → 19:30 복귀 → 심야 우버 Aura ~00:40. 상세는 Notion.' },
+{ day:10, date:'10/15', dow:'목', title:'Day 10 · 보스턴 당일치기', sub:'새벽 정류장행 → FlixBus 왕복 → 심야 귀가 · 보스턴 상세는 정류장 카드/Notion',
+  stops:[
+    { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
+      time:'04:30 출발', stay:'-', menu:'-', price:'우버 $30~45 (새벽)',
+      note:'새벽이라 Uber(지하철 비권장). 05:30 버스 대비 20분 전 정류장 도착 목표. <b style="color:#cc2b2b">커브사이드(길가)라 건물 없음 — 시간 엄수</b>' },
+    { type:'transit', name:'FlixBus 정류장 (NY Midtown · 31st St & 8th Ave)', coord:[40.7498,-73.9966],
+      time:'05:30 출발 / ~23:55 복귀', stay:'-', menu:'-', price:'FlixBus 왕복 €126.31 (2인)',
+      resv:{ at:'2026-10-15 05:30', dur:0, label:'✅ 예약완료 · FlixBus 왕복 (좌석 6A·6B)', url:'https://www.flixbus.com' },
+      note:'<b>가는 편 05:30 → 09:55 Boston South Station</b> · <b>오는 편 19:30 → 23:55 복귀</b>. 좌석 6A·6B. <b>보스턴 일정(지도 밖 · 상세 Notion)</b>: South Station→Red Line→하버드 10:20~13:00(카페 Blue Bottle·Tatte·L.A. Burdick) → MIT 13:15~14:45 → Ogawa Coffee(10 Milk St) → Freedom Trail(Old State House·Faneuil) → Quincy Market 저녁. <b style="color:#cc2b2b">게이트 전광판 확인 · Ogawa 목 16시 마감 · 편 지정이라 놓치면 재구매</b>' },
+    { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
+      time:'~00:40 복귀', stay:'-', menu:'-', price:'우버 $25~35 (심야)',
+      note:'23:55 정류장 도착 → 심야 우버 → ~00:40 Aura. 다음날(10/16)은 느긋 출발이라 OK' },
+  ],
+  modes:[
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } },
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } }],
+  segs:[
+    { car:'우버 ~30~40분 · $30~45 (새벽 04:30, 교통 원활)', transit:'새벽 지하철 비권장' },
+    { car:'우버 ~30~45분 · $25~35 (심야 23:55)', transit:'심야 지하철 비권장' }] },
 { day:11, date:'10/16', dow:'금', title:'Day 11', sub:'상세 미정', stops:[], modes:[],
   placeholder:'후보 테마: 미정' },
 { day:12, date:'10/17', dow:'토', title:'Day 12', sub:'상세 미정', stops:[], modes:[],
