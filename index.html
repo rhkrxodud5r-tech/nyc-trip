@@ -1224,11 +1224,9 @@ const map = L.map('map', {
   renderer: L.canvas({ padding:0.5 }),     /* 화면 밖 여유분까지 미리 그려 팬 중 끊김 방지 */
 }).setView([40.7128,-74.0060], 12);
 L.control.zoom({position:'bottomright'}).addTo(map);
-/* 지도 타일: CARTO 무키 차단 → Esri World Street Map(무키·부드러운 컬러·깔끔한 라벨).
-   회색(Light Gray)은 색이 빠져 보여서 컬러 있는 스트리트맵으로 교체(물색·공원·도로 색 유지). */
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19,
-  attribution: '&copy; Esri &copy; OpenStreetMap contributors'
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20, subdomains:'abcd',
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
 }).addTo(map);
 
 const dayLayer = L.layerGroup().addTo(map);
