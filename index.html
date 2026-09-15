@@ -839,8 +839,11 @@ const DAYS = [
       time:'자정 전후 체크인', stay:'-', menu:'-', price:'Uber/Lyft 약 $70~95 + 톨',
       note:'약 19마일·40~50분. 심야라 대중교통 비추천 — 라이드셰어로 바로 이동. 두 앱 실시간가 비교' },
   ],
-  modes:['uber'],
-  segs:['약 40~50분 (19마일)'] },
+  modes:[
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } }],
+  segs:[
+    { car:'우버/리프트 40~50분 · $70~95 (심야·19마일, 짐 많으면 UberXL)',
+      transit:'AirTrain+NJT(펜역)+지하철 ~1시간40분+ · 약 $15 (심야 배차 少·짐 부담 → 비권장)' }] },
 
 { day:2, date:'10/7', dow:'수', title:'Day 2 · 브릿지+미드타운', sub:'브루클린 브릿지 → 미드타운 → 록펠러 → 퀸즈',
   stops:[
@@ -1059,8 +1062,24 @@ const DAYS = [
       time:'~21:00 귀가', stay:'-', menu:'-', price:'우버 $20~26',
       note:'LES에서 우버 or 지하철. 오늘 예상 지출(2인): 약 $270~360 (Daintree 한잔 포함·쇼핑 별도)' },
   ],
-  modes:['uber','walk','uber','walk','walk','walk','uber','uber','uber'],
-  segs:['우버 12~15분 · $12~15 (또는 G열차)','도보 5분','우버 10분 · $13~16','도보 10분 (Kent Ave, Misi 바로 근처)','도보 12분 (워터프론트)','도보 15분 (또는 우버 짧게)','우버 15분 · $15~20','우버 15분 · $16~20 (덤보→LES · 또는 F열차)','우버 22~28분 · $20~26 (LES→브루클린)'] },
+  modes:[
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } },
+    'walk',
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } },
+    'walk','walk','walk',
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } },
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } },
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } }],
+  segs:[
+    { car:'우버 12~15분 · $12~15', transit:'G열차/버스 ~25~35분 · $6' },
+    '도보 5분',
+    { car:'우버 10분 · $13~16', transit:'B62 버스+도보 ~20~25분 · $6' },
+    '도보 10분 (Kent Ave, Misi 바로 근처)',
+    '도보 12분 (워터프론트)',
+    '도보 15분 (또는 우버 짧게)',
+    { car:'우버 15분 · $15~20', transit:'J/M+환승 ~30~40분 · $6 (환승 많아 우버 유리)' },
+    { car:'우버 15분 · $16~20 (덤보→LES)', transit:'F열차 York St→Delancey-Essex ~15~20분 · $6' },
+    { car:'우버 22~28분 · $20~26 (LES→브루클린)', transit:'F+J/M/Z 환승 ~35~45분 · $6' }] },
 { day:6, date:'10/11', dow:'일', title:'Day 6 · 촬영+스테이크+브로드웨이', sub:'센트럴파크 촬영 → Gallagher\'s → MJ the Musical → 원타임스퀘어 → BCD 순두부',
   stops:[
     { type:'transit', name:'호텔 (Aura, Brooklyn)', coord:[40.6939,-73.9605],
@@ -1202,8 +1221,18 @@ const DAYS = [
       time:'~19:15 귀가', stay:'-', menu:'-', price:'지하철/우버 $15~22',
       note:'Raku서 C/E(Spring St) 또는 우버 → 귀가' },
   ],
-  modes:['uber','walk','subway','walk','subway'],
-  segs:['지하철/우버 ~40~55분 (전날 여파 느긋)','도보 3블록 (CPW 72nd 진입)','C열차 72nd(CPW)→Spring St ~20~25분','도보 10분 (소호→MacDougal)','C/E Spring St 또는 우버'] },
+  modes:[
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } },
+    'walk',
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } },
+    'walk',
+    { car:{ legs:[{ mode:'uber' }] }, transit:{ legs:[{ mode:'subway' }] } }],
+  segs:[
+    { car:'우버 40~55분 · $40~55 (전날 여파 느긋)', transit:'지하철 A/C→1호선 등 ~55~70분 · $6' },
+    '도보 3블록 (CPW 72nd 진입)',
+    { car:'우버 20~30분 · $22~32', transit:'C열차 72nd(CPW)→Spring St ~20~25분 · $6' },
+    '도보 10분 (소호→MacDougal)',
+    { car:'우버 25~35분 · $22~30', transit:'C/E Spring St→환승 ~35~45분 · $6' }] },
 { day:12, date:'10/17', dow:'토', title:'Day 12', sub:'상세 미정', stops:[], modes:[],
   placeholder:'후보 테마: 미정 — 주말이라 인기 스팟은 피하고 로컬 동네 추천' },
 { day:13, date:'10/18', dow:'일', title:'Day 13', sub:'상세 미정', stops:[], modes:[],
