@@ -687,6 +687,30 @@
   .cat-chip .cc-dot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
   .cat-chip .cc-n { color:var(--sub); font-weight:700; }
   .lg-sep { width:1px; height:14px; background:rgba(0,0,0,.14); flex:0 0 auto; margin:0 3px; align-self:center; }
+
+  /* ============================================================
+     🚇 v5 — 대중교통 경로 패널 (대중교통 모드에서 스팟 선택 시 옆에 표시)
+     ============================================================ */
+  #transit-panel {
+    position:fixed; z-index:1001; left:10px; top:calc(140px + env(safe-area-inset-top, 0px));
+    width:min(76vw, 256px); max-height:52vh; overflow-y:auto; display:none;
+    background:var(--panel); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    color:var(--txt); border-radius:16px; padding:12px 13px 13px;
+    box-shadow:var(--shadow); border:1px solid var(--line);
+    font-size:12px; line-height:1.5;
+    animation:cardIn .22s cubic-bezier(.32,.72,.25,1);
+  }
+  #transit-panel::-webkit-scrollbar { display:none; }
+  #transit-panel .tp-close { position:absolute; top:7px; right:10px; cursor:pointer; color:var(--sub); font-size:14px; line-height:1; }
+  #transit-panel h4 { margin:0 0 7px; font-size:12.5px; font-weight:800; display:flex; align-items:center; gap:6px; }
+  #transit-panel .tp-leg { font-size:11px; color:var(--sub); margin-bottom:8px; line-height:1.4; }
+  #transit-panel .tp-leg b { color:var(--txt); }
+  #transit-panel .tp-sum { background:rgba(0,122,255,.08); border-radius:10px; padding:8px 10px; margin-bottom:9px; font-weight:600; font-size:11.5px; }
+  #transit-panel .tp-step { display:flex; gap:8px; padding:3px 0; align-items:flex-start; }
+  #transit-panel .tp-step .tp-i { width:16px; height:16px; border-radius:50%; background:var(--acc); color:#fff; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; flex:0 0 auto; margin-top:1px; }
+  #transit-panel .tp-gmap { display:block; text-align:center; background:var(--acc-grad); color:#fff; font-weight:700; font-size:11.5px; padding:9px; border-radius:11px; text-decoration:none; margin-top:9px; }
+  #transit-panel .tp-gmap:active { filter:brightness(.94); }
+  #transit-panel .tp-note { font-size:10px; color:var(--sub); margin-top:7px; }
 </style>
 </head>
 <body>
@@ -731,6 +755,7 @@
 <div id="island"><span id="isl-fx" class="isl-dim">₩ —</span><span class="isl-div"></span><span id="isl-wx" class="isl-dim">—°</span></div>
 <div id="island-card"></div>
 <div id="crowd-toast"></div>
+<div id="transit-panel"></div>
 <div id="offline-chip">오프라인 · 저장된 정보를 표시 중입니다</div>
 
 <div id="tools">
@@ -1078,7 +1103,8 @@ const DAYS = [
     '도보 12분 (워터프론트)',
     '도보 15분 (또는 우버 짧게)',
     { car:'우버 15분 · $15~20', transit:'J/M+환승 ~30~40분 · $6 (환승 많아 우버 유리)' },
-    { car:'우버 15분 · $16~20 (덤보→LES)', transit:'F열차 York St→Delancey-Essex ~15~20분 · $6' },
+    { car:'우버 15분 · $16~20 (덤보→LES)', transit:'F열차 York St→Delancey-Essex ~15~20분 · $6',
+      tr:['덤보 York St역(F) 도보','맨해튼행 F 승차','Delancey St–Essex St 하차','도보 5분 → 139 Orchard St'] },
     { car:'우버 22~28분 · $20~26 (LES→브루클린)', transit:'F+J/M/Z 환승 ~35~45분 · $6' }] },
 { day:6, date:'10/11', dow:'일', title:'Day 6 · 촬영+스테이크+브로드웨이', sub:'센트럴파크 촬영 → Gallagher\'s → MJ the Musical → 원타임스퀘어 → BCD 순두부',
   stops:[
@@ -1230,7 +1256,8 @@ const DAYS = [
   segs:[
     { car:'우버 40~55분 · $40~55 (전날 여파 느긋)', transit:'지하철 A/C→1호선 등 ~55~70분 · $6' },
     '도보 3블록 (CPW 72nd 진입)',
-    { car:'우버 20~30분 · $22~32', transit:'C열차 72nd(CPW)→Spring St ~20~25분 · $6' },
+    { car:'우버 20~30분 · $22~32', transit:'C열차 72nd(CPW)→Spring St ~20~25분 · $6',
+      tr:['72nd St & Central Park West역(B·C) 도보','C 남행(Downtown) 승차','Spring St 하차 (약 20분)','도보 3~5분 → 소호'] },
     '도보 10분 (소호→MacDougal)',
     { car:'우버 25~35분 · $22~30', transit:'C/E Spring St→환승 ~35~45분 · $6' }] },
 { day:12, date:'10/17', dow:'토', title:'Day 12', sub:'상세 미정', stops:[], modes:[],
@@ -1342,6 +1369,7 @@ function selectDay(i){
   buildLegend(day);
   updateDaySummary(i);
   updateTmode(day);
+  document.getElementById('transit-panel').style.display = 'none';
   if (typeof islandCard !== 'undefined' && islandCard.style.display === 'block') renderIslandCard();
 
   if (!day.stops.length){
@@ -1435,6 +1463,7 @@ function focusStop(i, source){
   setSelMarker(i);
   if (source !== 'picker') scrollToIndex(i);
   if (source !== 'marker') flyToStop(DAYS[curDay].stops[i].coord);
+  renderTransitPanel(i);
   markers[i].openPopup();
 }
 
@@ -2019,6 +2048,30 @@ document.getElementById('park-btn').addEventListener('click', function(){
   } else { map.removeLayer(parkLayer); }
 });
 
+/* ---- 대중교통 경로 패널 (대중교통 모드에서 스팟 선택 시 옆에 표시) ---- */
+function gmapTransitUrl(a, b){
+  return 'https://www.google.com/maps/dir/?api=1&origin=' + a[0] + ',' + a[1] + '&destination=' + b[0] + ',' + b[1] + '&travelmode=transit';
+}
+function renderTransitPanel(i){
+  const panel = document.getElementById('transit-panel');
+  const d = DAYS[curDay];
+  if (transportMode !== 'transit' || !d || !d.stops.length || i < 1){ panel.style.display = 'none'; return; }
+  const mode = d.modes[i-1], seg = d.segs && d.segs[i-1];
+  if (typeof mode === 'string'){ panel.style.display = 'none'; return; }  /* 도보 등 단일모드 구간은 스킵 */
+  const from = d.stops[i-1], to = d.stops[i];
+  const sum = seg ? resolveSeg(seg) : '';
+  const steps = (seg && seg.tr) ? seg.tr : null;
+  panel.innerHTML =
+    '<span class="tp-close" onclick="document.getElementById(\'transit-panel\').style.display=\'none\'">✕</span>' +
+    '<h4>🚇 대중교통 경로</h4>' +
+    '<div class="tp-leg"><b>' + from.name + '</b><br>↓<br><b>' + to.name + '</b></div>' +
+    (sum ? '<div class="tp-sum">' + sum + '</div>' : '') +
+    (steps ? steps.map(function(s,k){ return '<div class="tp-step"><span class="tp-i">' + (k+1) + '</span><span>' + s + '</span></div>'; }).join('') : '') +
+    '<a class="tp-gmap" href="' + gmapTransitUrl(from.coord, to.coord) + '" target="_blank">🗺 구글맵 대중교통 실시간 경로</a>' +
+    '<div class="tp-note">실제 노선·환승·소요시간은 구글맵 실시간이 정확(주말 공사 반영).</div>';
+  panel.style.display = 'block';
+}
+
 /* ---- 차량/대중교통 토글 ---- */
 function updateTmode(day){
   const el = document.getElementById('tmode');
@@ -2031,7 +2084,9 @@ function setTransportMode(t){
   if (transportMode === t) return;
   transportMode = t;
   try { localStorage.setItem('nycTmode', t); } catch(e){}
+  const keep = currentIndex;
   selectDay(curDay); /* 경로 색·범례·팝업 소요시간 일괄 갱신 */
+  if (keep > 0) focusStop(keep);   /* 토글 후 선택 스팟 유지 → 경로 패널 즉시 갱신 */
 }
 document.getElementById('tm-car').addEventListener('click', () => setTransportMode('car'));
 document.getElementById('tm-transit').addEventListener('click', () => setTransportMode('transit'));
